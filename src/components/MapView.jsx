@@ -119,34 +119,38 @@ const ClusterTooltip = ({ cluster, pos, assets }) => {
 };
 
 // ── Main MapView ───────────────────────────────────────────────────────────────
-const MapView = ({ filteredAssets }) => {
+const MapView = ({ filteredAssets, isSidebarOpen, onToggleSidebar, theme, onThemeChange }) => {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
+  const renderMarkersRef = useRef(null);
+  const filteredAssetsRef = useRef(filteredAssets);
+  const is3DRef = useRef(false);
   const [tooltip, setTooltip] = useState(null);
   const [clusterTooltip, setClusterTooltip] = useState(null);
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
   const [is3D, setIs3D] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(2);
 
-  // Night-vision dark map style
-  const MAP_STYLE = {
+  // Map styles
+  const LIGHT_STYLE = 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png';
+  const DARK_STYLE = 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png';
+
+  const getMapStyle = (t) => ({
     version: 8,
     sources: {
-      'carto-dark': {
+      'carto-base': {
         type: 'raster',
-        tiles: [
-          'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
-          'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
-          'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
-        ],
+        tiles: [t],
         tileSize: 256,
         attribution: '© CARTO © OpenStreetMap',
         maxzoom: 19,
       },
     },
-    layers: [{ id: 'carto-dark-layer', type: 'raster', source: 'carto-dark' }],
-  };
+    layers: [{ id: 'carto-base-layer', type: 'raster', source: 'carto-base' }],
+  });
+
+  const MAP_STYLE = getMapStyle(theme === 'light' ? LIGHT_STYLE : DARK_STYLE);
 
   // Get the highest-severity color of all assets in a cluster
   const getClusterColor = useCallback((ids) => {
@@ -158,23 +162,30 @@ const MapView = ({ filteredAssets }) => {
     return '#fff';
   }, [filteredAssets]);
 
+  // Keep refs updated for listeners
+  useEffect(() => {
+    filteredAssetsRef.current = filteredAssets;
+  }, [filteredAssets]);
+
   // Render markers using Supercluster
   const renderMarkers = useCallback(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !map.loaded()) return;
+
+    const assets = filteredAssetsRef.current;
 
     // Remove old markers
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
-    if (filteredAssets.length === 0) return;
+    if (assets.length === 0) return;
 
     const zoom = Math.floor(map.getZoom());
     setCurrentZoom(zoom);
 
     // Build supercluster
     const sc = new Supercluster({ radius: 60, maxZoom: 14 });
-    const points = filteredAssets.map(a => ({
+    const points = assets.map(a => ({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: a.coordinates },
       properties: { id: a.id },
@@ -188,7 +199,7 @@ const MapView = ({ filteredAssets }) => {
     clusters.forEach(cluster => {
       const [lng, lat] = cluster.geometry.coordinates;
       const el = document.createElement('div');
-      el.style.cssText = 'position:relative; cursor:pointer;';
+      el.style.cssText = 'width:0; height:0; display:flex; align-items:center; justify-content:center; position:relative; cursor:pointer;';
 
       if (cluster.properties.cluster) {
         // ── Cluster marker ──
@@ -202,7 +213,7 @@ const MapView = ({ filteredAssets }) => {
             width:${size}px; height:${size}px; border-radius:50%;
             background:${color}22; border:2px solid ${color}88;
             display:flex; align-items:center; justify-content:center;
-            position:relative;
+            position:absolute;
             box-shadow: 0 0 16px ${color}44, 0 0 4px ${color}88;
             transition: transform .15s;
           " class="cluster-inner">
@@ -236,12 +247,12 @@ const MapView = ({ filteredAssets }) => {
 
       } else {
         // ── Single asset marker ──
-        const asset = filteredAssets.find(a => a.id === cluster.properties.id);
+        const asset = assets.find(a => a.id === cluster.properties.id);
         if (!asset) return;
         const cfg = STATUS_CONFIG[asset.status];
 
         el.innerHTML = `
-          <div style="position:relative; display:flex; align-items:center; justify-content:center;">
+          <div style="position:absolute; display:flex; align-items:center; justify-content:center;">
             <div class="pulse-ring" style="
               position:absolute; width:22px; height:22px; border-radius:3px;
               background:${cfg.color}; opacity:.12;
@@ -278,7 +289,12 @@ const MapView = ({ filteredAssets }) => {
         .addTo(map);
       markersRef.current.push(marker);
     });
-  }, [filteredAssets, getClusterColor]);
+  }, [getClusterColor]);
+
+  // Keep renderMarkersRef updated
+  useEffect(() => {
+    renderMarkersRef.current = renderMarkers;
+  }, [renderMarkers]);
 
   // Toggle 3D pitch
   const toggle3D = useCallback(() => {
@@ -289,7 +305,11 @@ const MapView = ({ filteredAssets }) => {
     } else {
       map.easeTo({ pitch: 55, bearing: -20, duration: 800 });
     }
-    setIs3D(v => !v);
+    setIs3D(v => {
+      const next = !v;
+      is3DRef.current = next;
+      return next;
+    });
   }, [is3D]);
 
   // Init map
@@ -303,7 +323,8 @@ const MapView = ({ filteredAssets }) => {
       zoom: 2,
       minZoom: 1,
       maxZoom: 18,
-      scrollZoom: true, // ← native scroll zoom enabled
+      projection: { name: 'globe' }, // ← Enable 3D Globe
+      scrollZoom: true,
       pitchWithRotate: true,
       attributionControl: false,
     });
@@ -314,12 +335,41 @@ const MapView = ({ filteredAssets }) => {
       renderMarkers();
     });
 
+    const onMove = () => {
+      if (renderMarkersRef.current) renderMarkersRef.current();
+    };
+
     // Re-render on move/zoom (clustering updates)
-    map.on('moveend', renderMarkers);
-    map.on('zoomend', renderMarkers);
+    map.on('moveend', onMove);
+    map.on('zoomend', onMove);
 
     // Add attribution
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+
+    // ── Globe Rotation Logic ──
+    let userInteracting = false;
+    const spinEnabled = true;
+
+    const onInteractionStart = () => { userInteracting = true; };
+    const onInteractionEnd = () => { userInteracting = false; };
+
+    map.on('mousedown', onInteractionStart);
+    map.on('mouseup', onInteractionEnd);
+    map.on('dragstart', onInteractionStart);
+    map.on('dragend', onInteractionEnd);
+    map.on('zoomstart', onInteractionStart);
+    map.on('zoomend', onInteractionEnd);
+
+    const rotateGlobe = () => {
+      if (spinEnabled && !userInteracting && is3DRef.current && map.getZoom() < 5) {
+        const center = map.getCenter();
+        center.lng += 0.12; // Speed
+        map.setCenter(center);
+      }
+      requestAnimationFrame(rotateGlobe);
+    };
+
+    rotateGlobe();
 
     return () => {
       markersRef.current.forEach(m => m.remove());
@@ -334,6 +384,22 @@ const MapView = ({ filteredAssets }) => {
       renderMarkers();
     }
   }, [filteredAssets, renderMarkers]);
+
+  // Resize map when sidebar toggles
+  // Theme effect
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map && map.loaded()) {
+      map.setStyle(getMapStyle(theme === 'light' ? LIGHT_STYLE : DARK_STYLE));
+    }
+  }, [theme]);
+
+  // Resize map when sidebar toggles
+  useEffect(() => {
+    if (mapRef.current) {
+      setTimeout(() => mapRef.current.resize(), 350); // wait for CSS transition
+    }
+  }, [isSidebarOpen]);
 
   return (
     <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
@@ -359,6 +425,25 @@ const MapView = ({ filteredAssets }) => {
 
       {/* Top-right controls */}
       <div style={{ position: 'absolute', top: 14, right: 14, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {/* Theme Toggle */}
+        <button
+          onClick={() => onThemeChange(theme === 'light' ? 'dark' : 'light')}
+          title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} mode`}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 8,
+            background: 'rgba(8,9,18,0.88)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 7, color: '#64748b', cursor: 'pointer',
+            backdropFilter: 'blur(10px)',
+            transition: 'all .2s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'}
+          onMouseLeave={e => e.currentTarget.style.color = '#64748b'}
+        >
+          {theme === 'light' ? <span style={{ fontSize: 13 }}>🌙</span> : <span style={{ fontSize: 13 }}>☀️</span>}
+        </button>
+
         {/* 3D Toggle */}
         <button
           onClick={toggle3D}
@@ -390,13 +475,31 @@ const MapView = ({ filteredAssets }) => {
 
       {/* Asset count badge */}
       <div style={{
-        position: 'absolute', top: 14, left: 14, zIndex: 10,
+        position: 'absolute', top: 14, left: isSidebarOpen ? 14 : 52, zIndex: 10,
         fontSize: 10, fontWeight: 700, color: '#475569',
         background: 'rgba(8,9,18,0.8)', border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: 6, padding: '4px 10px', backdropFilter: 'blur(10px)',
+        transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
         {filteredAssets.length} assets visible
       </div>
+
+      {/* Open Sidebar Button (when closed) */}
+      {!isSidebarOpen && (
+        <button
+          onClick={onToggleSidebar}
+          style={{
+            position: 'absolute', top: 14, left: 14, zIndex: 11,
+            width: 30, height: 30, borderRadius: 6,
+            background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)',
+            color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', backdropFilter: 'blur(10px)', animation: 'fadeIn 0.3s ease',
+          }}
+          title="Open Sidebar"
+        >
+          <ChevronRight size={18} />
+        </button>
+      )}
 
       {/* Legend */}
       <div style={{

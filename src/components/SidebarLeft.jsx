@@ -1,8 +1,8 @@
 import React from 'react';
-import { ShieldCheck, ChevronRight, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react';
+import { ShieldCheck, ChevronRight, AlertTriangle, TrendingUp, TrendingDown, ChevronLeft } from 'lucide-react';
 import { STATUS_CONFIG } from '../data/assets';
 
-const SidebarLeft = ({ assets, onAssetClick }) => {
+const SidebarLeft = ({ assets, onAssetClick, onToggle }) => {
   const criticalCount = assets.filter(a => a.status === 'CRITICAL').length;
   const safeCount = assets.filter(a => a.status === 'SAFE').length;
   const totalValue = '$372.5M';
@@ -20,6 +20,32 @@ const SidebarLeft = ({ assets, onAssetClick }) => {
       overflowY: 'auto',
       flexShrink: 0,
     }}>
+      {/* Minimize Button */}
+      <button 
+        onClick={onToggle}
+        style={{
+          position: 'absolute',
+          top: 14,
+          right: 14,
+          zIndex: 10,
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 6,
+          padding: 4,
+          cursor: 'pointer',
+          color: '#475569',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all .2s',
+        }}
+        onMouseEnter={e => e.currentTarget.style.color = '#f1f5f9'}
+        onMouseLeave={e => e.currentTarget.style.color = '#475569'}
+        title="Minimize Sidebar"
+      >
+        <ChevronLeft size={16} />
+      </button>
+
       {/* Confidence Section */}
       <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 14 }}>

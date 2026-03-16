@@ -18,6 +18,11 @@ const DEFAULT_FILTERS = {
 const App = () => {
   const [activeTab, setActiveTab] = useState('RISK RADAR');
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [theme, setTheme] = useState('dark');
+
+  const handleToggleSidebar = () => setIsSidebarOpen(prev => !prev);
+  const handleThemeChange = (newTheme) => setTheme(newTheme);
 
   const handleFilterChange = (key, value) => {
     if (key === 'reset') {
@@ -49,12 +54,30 @@ const App = () => {
         <Header activeTab={activeTab} onTabChange={setActiveTab} />
 
         {activeTab === 'RISK RADAR' ? (
-          <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-            <SidebarLeft assets={filteredAssets} />
+          <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
+            <div style={{ 
+              width: isSidebarOpen ? 290 : 0, 
+              transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
+              overflow: 'hidden',
+              flexShrink: 0,
+              borderRight: isSidebarOpen ? '1px solid rgba(255,255,255,0.07)' : 'none'
+            }}>
+              <SidebarLeft 
+                assets={filteredAssets} 
+                isOpen={isSidebarOpen} 
+                onToggle={handleToggleSidebar} 
+              />
+            </div>
 
             <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <ControlBar filters={filters} onFilterChange={handleFilterChange} />
-              <MapView filteredAssets={filteredAssets} />
+              <MapView 
+                filteredAssets={filteredAssets} 
+                isSidebarOpen={isSidebarOpen} 
+                onToggleSidebar={handleToggleSidebar}
+                theme={theme}
+                onThemeChange={handleThemeChange}
+              />
               <Footer assets={filteredAssets} />
             </main>
           </div>
