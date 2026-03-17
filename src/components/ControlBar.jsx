@@ -1,12 +1,23 @@
 import React from 'react';
 import { ChevronDown, RotateCcw, SlidersHorizontal } from 'lucide-react';
-import { FUNDS, ASSET_TYPES, STATUSES, ASSETS_DATA } from '../data/assets';
+import { FUNDS, ASSET_TYPES, STATUSES, ASSETS_DATA, RISK_TYPES } from '../data/assets';
 
-const COUNTRIES = ['All', ...Array.from(new Set(ASSETS_DATA.map(a => a.country))).sort()];
+const COUNTRIES = [
+  'All',
+  ...Array.from(new Set(
+    ASSETS_DATA
+      .filter(a => 
+        a.coordinates[0] >= -30 && a.coordinates[0] <= 50 &&
+        a.coordinates[1] >= 30 && a.coordinates[1] <= 75
+      )
+      .map(a => a.country)
+  )).sort()
+];
 
 const ControlBar = ({ filters, onFilterChange }) => {
   const filterDefs = [
     { key: 'mode', label: 'Mode', options: ['Overall Risk', 'Portfolio Risk', 'Asset Risk'] },
+    { key: 'riskType', label: 'Risk Type', options: RISK_TYPES },
     { key: 'timeframe', label: 'Timeframe', options: ['3 Months', '6 Months', '12 Months', '24 Months'] },
     { key: 'fund', label: 'Funds', options: FUNDS },
     { key: 'assetType', label: 'Asset Types', options: ASSET_TYPES },
@@ -15,7 +26,7 @@ const ControlBar = ({ filters, onFilterChange }) => {
   ];
 
   const activeFilters = Object.entries(filters).filter(
-    ([k, v]) => !['mode', 'timeframe'].includes(k) && v !== 'All'
+    ([k, v]) => !['mode', 'riskType', 'timeframe'].includes(k) && v !== 'All'
   ).length;
 
   return (

@@ -1,16 +1,22 @@
 import React from 'react';
-import { ShieldCheck, ChevronRight, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react';
+import { ShieldCheck, ChevronRight, AlertTriangle, TrendingUp, TrendingDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { STATUS_CONFIG } from '../data/assets';
 
-const SidebarLeft = ({ assets, onAssetClick }) => {
-  const criticalCount = assets.filter(a => a.status === 'CRITICAL').length;
-  const safeCount = assets.filter(a => a.status === 'SAFE').length;
+const SidebarLeft = ({ 
+  assets, onAssetClick, isCollapsed, onToggle,
+  selectedRiskType = 'All Risks',
+  hoveredAssetId, setHoveredAssetId,
+  selectedAssetId, setSelectedAssetId
+}) => {
+  const riskKey = selectedRiskType === 'All Risks' ? 'overall' : selectedRiskType.toLowerCase();
+  const criticalCount = assets.filter(a => a.risks[riskKey].status === 'CRITICAL').length;
+  const safeCount = assets.filter(a => a.risks[riskKey].status === 'SAFE').length;
   const totalValue = '$372.5M';
   const confidence = Math.round((safeCount / Math.max(assets.length, 1)) * 100) || 35;
 
   return (
     <aside style={{
-      width: 290,
+      width: isCollapsed ? 48 : 290,
       borderRight: '1px solid rgba(255,255,255,0.07)',
       display: 'flex',
       flexDirection: 'column',
@@ -19,9 +25,38 @@ const SidebarLeft = ({ assets, onAssetClick }) => {
       height: '100%',
       overflowY: 'auto',
       flexShrink: 0,
+      transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      position: 'relative',
     }}>
-      {/* Confidence Section */}
-      <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      {/* Toggle Button */}
+      <button 
+        onClick={onToggle}
+        style={{
+          position: 'absolute',
+          top: 12,
+          right: isCollapsed ? 12 : 12,
+          background: 'none',
+          border: 'none',
+          color: '#475569',
+          cursor: 'pointer',
+          zIndex: 10,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 4,
+          borderRadius: 4,
+          transition: 'color 0.2s',
+        }}
+        onMouseEnter={e => e.currentTarget.style.color = '#94a3b8'}
+        onMouseLeave={e => e.currentTarget.style.color = '#475569'}
+      >
+        {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+      </button>
+
+      {!isCollapsed && (
+        <>
+          {/* Confidence Section */}
+          <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingTop: 40 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 14 }}>
           <ShieldCheck size={13} color="#475569" />
           <span style={{ fontSize: 10, fontWeight: 700, color: '#475569', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Confidence</span>
@@ -101,22 +136,31 @@ const SidebarLeft = ({ assets, onAssetClick }) => {
           </div>
         )}
         {assets.map((asset) => {
-          const cfg = STATUS_CONFIG[asset.status];
+          const riskData = asset.risks[riskKey];
+          const cfg = STATUS_CONFIG[riskData.status];
           const TrendIcon = asset.trendDir === 'up' ? TrendingUp : TrendingDown;
           const trendColor = asset.trendDir === 'up' ? '#ff9f43' : '#2ecc71';
+
+          const isSelected = selectedAssetId === asset.id;
+          const isHovered = hoveredAssetId === asset.id;
+          const isActive = isSelected || isHovered;
 
           return (
             <div
               key={asset.id}
-              onClick={() => onAssetClick && onAssetClick(asset)}
+              onClick={() => {
+                setSelectedAssetId(isSelected ? null : asset.id);
+                if (onAssetClick) onAssetClick(asset);
+              }}
               style={{
                 padding: '12px 18px',
                 borderBottom: '1px solid rgba(255,255,255,0.04)',
                 cursor: 'pointer',
                 transition: 'background .15s',
+                background: isActive ? 'rgba(255,255,255,0.08)' : 'transparent',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              onMouseEnter={() => setHoveredAssetId(asset.id)}
+              onMouseLeave={() => setHoveredAssetId(null)}
             >
               <div style={{ display: 'flex', gap: 10 }}>
                 <AlertTriangle size={13} style={{ color: cfg.color, flexShrink: 0, marginTop: 2 }} />
@@ -124,7 +168,7 @@ const SidebarLeft = ({ assets, onAssetClick }) => {
                   <div style={{ fontSize: 11, fontWeight: 600, color: '#cbd5e1', marginBottom: 2 }}>{asset.name}</div>
                   <div style={{ fontSize: 9, color: '#475569', marginBottom: 6 }}>{asset.city} · {asset.assetType}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 20, fontWeight: 800, color: cfg.color, lineHeight: 1 }}>{asset.score}</span>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: cfg.color, lineHeight: 1 }}>{riskData.score}</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 9, fontWeight: 700, color: trendColor }}>
                       <TrendIcon size={9} />{asset.trend}
                     </span>
@@ -134,7 +178,7 @@ const SidebarLeft = ({ assets, onAssetClick }) => {
                     color: cfg.color, background: cfg.bg,
                     display: 'inline-block', padding: '2px 7px', borderRadius: 3,
                   }}>
-                    {asset.status}
+                    {riskData.status}
                   </div>
                 </div>
               </div>
@@ -151,6 +195,8 @@ const SidebarLeft = ({ assets, onAssetClick }) => {
       }}>
         {assets.length} Total Assets · {totalValue}
       </div>
+        </>
+      )}
     </aside>
   );
 };

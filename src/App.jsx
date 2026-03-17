@@ -8,6 +8,7 @@ import { ASSETS_DATA } from './data/assets';
 
 const DEFAULT_FILTERS = {
   mode: 'Overall Risk',
+  riskType: 'All Risks',
   timeframe: '12 Months',
   fund: 'All',
   assetType: 'All',
@@ -18,6 +19,9 @@ const DEFAULT_FILTERS = {
 const App = () => {
   const [activeTab, setActiveTab] = useState('RISK RADAR');
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [hoveredAssetId, setHoveredAssetId] = useState(null);
+  const [selectedAssetId, setSelectedAssetId] = useState(null);
 
   const handleFilterChange = (key, value) => {
     if (key === 'reset') {
@@ -50,11 +54,27 @@ const App = () => {
 
         {activeTab === 'RISK RADAR' ? (
           <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-            <SidebarLeft assets={filteredAssets} />
+            <SidebarLeft 
+              assets={filteredAssets} 
+              isCollapsed={isSidebarCollapsed} 
+              onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
+              selectedRiskType={filters.riskType}
+              hoveredAssetId={hoveredAssetId}
+              setHoveredAssetId={setHoveredAssetId}
+              selectedAssetId={selectedAssetId}
+              setSelectedAssetId={setSelectedAssetId}
+            />
 
             <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <ControlBar filters={filters} onFilterChange={handleFilterChange} />
-              <MapView filteredAssets={filteredAssets} />
+              <MapView 
+                filteredAssets={filteredAssets} 
+                selectedRiskType={filters.riskType}
+                hoveredAssetId={hoveredAssetId}
+                setHoveredAssetId={setHoveredAssetId}
+                selectedAssetId={selectedAssetId}
+                setSelectedAssetId={setSelectedAssetId}
+              />
               <Footer assets={filteredAssets} />
             </main>
           </div>

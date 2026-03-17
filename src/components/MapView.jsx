@@ -1,14 +1,14 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import Supercluster from 'supercluster';
 import { STATUS_CONFIG } from '../data/assets';
 import { X, TrendingUp, TrendingDown, ChevronRight, Layers, Compass } from 'lucide-react';
 
 // ── Tooltip ────────────────────────────────────────────────────────────────────
-const MapTooltip = ({ asset, pos, onClose }) => {
+const MapTooltip = ({ asset, pos, riskKey, onClose }) => {
   if (!asset) return null;
-  const cfg = STATUS_CONFIG[asset.status];
+  const riskData = asset.risks[riskKey];
+  const cfg = STATUS_CONFIG[riskData.status];
   const TrendIcon = asset.trendDir === 'up' ? TrendingUp : TrendingDown;
   const trendColor = asset.trendDir === 'up' ? '#ff9f43' : '#2ecc71';
 
@@ -37,13 +37,13 @@ const MapTooltip = ({ asset, pos, onClose }) => {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
-          <span style={{ fontSize: 28, fontWeight: 800, color: cfg.color, lineHeight: 1 }}>{asset.score}</span>
+          <span style={{ fontSize: 28, fontWeight: 800, color: cfg.color, lineHeight: 1 }}>{riskData.score}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: trendColor, fontSize: 10, fontWeight: 700 }}>
             <TrendIcon size={11} />{asset.trend}
           </div>
           <span style={{ fontSize: 10, color: '#334155', fontWeight: 600 }}>{asset.units}</span>
           <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', color: cfg.color, background: cfg.bg, padding: '2px 8px', borderRadius: 4 }}>
-            {asset.status}
+            {riskData.status}
           </span>
         </div>
       </div>
@@ -83,51 +83,33 @@ const MapTooltip = ({ asset, pos, onClose }) => {
   );
 };
 
-// ── Cluster Tooltip ───────────────────────────────────────────────────────────
-const ClusterTooltip = ({ cluster, pos, assets }) => {
-  if (!cluster) return null;
-  const clusterAssets = assets.filter(a => cluster.ids?.includes(a.id));
-  const criticalCount = clusterAssets.filter(a => a.status === 'CRITICAL').length;
-  const elevatedCount = clusterAssets.filter(a => a.status === 'ELEVATED').length;
 
-  return (
-    <div style={{
-      position: 'fixed',
-      left: Math.min(pos.x + 20, window.innerWidth - 220),
-      top: Math.max(pos.y - 120, 8),
-      zIndex: 9999,
-      width: 210,
-      background: 'rgba(7,8,17,0.97)',
-      backdropFilter: 'blur(20px)',
-      border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: 8,
-      padding: '12px 14px',
-      boxShadow: '0 24px 60px rgba(0,0,0,0.8)',
-      animation: 'fadeIn .15s ease',
-      pointerEvents: 'none',
-    }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#f1f5f9', marginBottom: 6 }}>
-        {cluster.count} Assets nearby
-      </div>
-      <div style={{ fontSize: 9, color: '#475569', marginBottom: 8 }}>Zoom in to see individual assets</div>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {criticalCount > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: '#ff4d4d', background: 'rgba(255,77,77,0.12)', padding: '2px 7px', borderRadius: 3 }}>{criticalCount} Critical</span>}
-        {elevatedCount > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: '#ff9f43', background: 'rgba(255,159,67,0.12)', padding: '2px 7px', borderRadius: 3 }}>{elevatedCount} Elevated</span>}
-      </div>
-    </div>
-  );
-};
 
 // ── Main MapView ───────────────────────────────────────────────────────────────
-const MapView = ({ filteredAssets }) => {
+const MapView = ({
+  filteredAssets,
+  selectedRiskType = 'All Risks',
+  hoveredAssetId, setHoveredAssetId,
+  selectedAssetId, setSelectedAssetId
+}) => {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
   const [tooltip, setTooltip] = useState(null);
-  const [clusterTooltip, setClusterTooltip] = useState(null);
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
   const [is3D, setIs3D] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(2);
+  const [selectedAssetPos, setSelectedAssetPos] = useState({ x: 0, y: 0 });
+
+  const riskKey = selectedRiskType === 'All Risks' ? 'overall' : selectedRiskType.toLowerCase();
+
+  // Europe-only filter (keeping global data in higher components as requested)
+  const europeAssets = useMemo(() => {
+    return filteredAssets.filter(a =>
+      a.coordinates[0] >= -30 && a.coordinates[0] <= 50 &&
+      a.coordinates[1] >= 30 && a.coordinates[1] <= 75
+    );
+  }, [filteredAssets]);
 
   // Night-vision dark map style
   const MAP_STYLE = {
@@ -148,17 +130,7 @@ const MapView = ({ filteredAssets }) => {
     layers: [{ id: 'carto-dark-layer', type: 'raster', source: 'carto-dark' }],
   };
 
-  // Get the highest-severity color of all assets in a cluster
-  const getClusterColor = useCallback((ids) => {
-    const clusterAssets = filteredAssets.filter(a => ids.includes(a.id));
-    const statuses = ['CRITICAL', 'ELEVATED', 'MODERATE', 'SAFE'];
-    for (const s of statuses) {
-      if (clusterAssets.some(a => a.status === s)) return STATUS_CONFIG[s].color;
-    }
-    return '#fff';
-  }, [filteredAssets]);
-
-  // Render markers using Supercluster
+  // Render markers directly
   const renderMarkers = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -167,118 +139,70 @@ const MapView = ({ filteredAssets }) => {
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
-    if (filteredAssets.length === 0) return;
+    if (europeAssets.length === 0) return;
 
     const zoom = Math.floor(map.getZoom());
     setCurrentZoom(zoom);
 
-    // Build supercluster
-    const sc = new Supercluster({ radius: 60, maxZoom: 14 });
-    const points = filteredAssets.map(a => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: a.coordinates },
-      properties: { id: a.id },
-    }));
-    sc.load(points);
-
-    const bounds = map.getBounds();
-    const bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];
-    const clusters = sc.getClusters(bbox, zoom);
-
-    clusters.forEach(cluster => {
-      const [lng, lat] = cluster.geometry.coordinates;
+    europeAssets.forEach(asset => {
+      let [lng, lat] = asset.coordinates;
       const el = document.createElement('div');
       el.style.cssText = 'position:relative; cursor:pointer;';
 
-      if (cluster.properties.cluster) {
-        // ── Cluster marker ──
-        const count = cluster.properties.point_count;
-        const ids = sc.getLeaves(cluster.id, Infinity).map(l => l.properties.id);
-        const color = getClusterColor(ids);
-        const size = Math.min(20 + count * 5, 52);
+      const riskData = asset.risks[riskKey];
+      const cfg = STATUS_CONFIG[riskData.status];
 
-        el.innerHTML = `
+      const isSelected = selectedAssetId === asset.id;
+      const isHovered = hoveredAssetId === asset.id;
+      const isActive = isSelected || isHovered;
+      const isDimmed = (selectedAssetId || hoveredAssetId) && !isActive;
+      const opacity = isDimmed ? 0.3 : 1;
+      const ringOpacity = isDimmed ? 0.03 : 0.12;
+      const sizeScale = isActive ? 1.5 : 1;
+      const boxShadow = isActive
+        ? `0 0 12px ${cfg.color}, 0 0 28px ${cfg.color}80`
+        : `0 0 6px ${cfg.color}, 0 0 16px ${cfg.color}60`;
+
+      el.style.opacity = opacity;
+      el.style.transition = 'opacity 0.2s';
+      el.style.zIndex = isActive ? 100 : 1;
+
+      el.innerHTML = `
+        <div style="position:relative; display:flex; align-items:center; justify-content:center;">
+          <div class="pulse-ring" style="
+            position:absolute; width:22px; height:22px; border-radius:3px;
+            background:${cfg.color}; opacity:${ringOpacity};
+            animation: pulseRing ${1.8 + asset.id * 0.15}s ease-in-out infinite;
+          "></div>
           <div style="
-            width:${size}px; height:${size}px; border-radius:50%;
-            background:${color}22; border:2px solid ${color}88;
-            display:flex; align-items:center; justify-content:center;
-            position:relative;
-            box-shadow: 0 0 16px ${color}44, 0 0 4px ${color}88;
-            transition: transform .15s;
-          " class="cluster-inner">
-            <div style="
-              position:absolute; width:${size * 0.55}px; height:${size * 0.55}px;
-              border-radius:50%; background:${color}55;
-              border:1.5px solid ${color};
-              display:flex; align-items:center; justify-content:center;
-              font-size:${Math.max(9, size * 0.28)}px; font-weight:800;
-              color:#fff; font-family:Inter,sans-serif;
-              box-shadow: 0 0 10px ${color};
-            ">${count}</div>
-          </div>`;
+            width:12px; height:12px; border-radius:2.5px;
+            background:${cfg.color}; opacity:0.9;
+            box-shadow:${boxShadow};
+            transform:scale(${sizeScale});
+            transition:transform .15s, box-shadow .15s;
+            position:relative; z-index:1;
+          " class="core"></div>
+        </div>`;
 
-        el.addEventListener('mouseenter', (e) => {
-          el.querySelector('.cluster-inner').style.transform = 'scale(1.15)';
-          setClusterTooltip({ count, ids });
-          setHoverPos({ x: e.clientX, y: e.clientY });
-          setTooltip(null);
-        });
-        el.addEventListener('mouseleave', () => {
-          el.querySelector('.cluster-inner').style.transform = 'scale(1)';
-          setClusterTooltip(null);
-        });
-        el.addEventListener('mousemove', (e) => {
-          setHoverPos({ x: e.clientX, y: e.clientY });
-        });
-        el.addEventListener('click', () => {
-          map.flyTo({ center: [lng, lat], zoom: zoom + 2, duration: 700 });
-        });
-
-      } else {
-        // ── Single asset marker ──
-        const asset = filteredAssets.find(a => a.id === cluster.properties.id);
-        if (!asset) return;
-        const cfg = STATUS_CONFIG[asset.status];
-
-        el.innerHTML = `
-          <div style="position:relative; display:flex; align-items:center; justify-content:center;">
-            <div class="pulse-ring" style="
-              position:absolute; width:22px; height:22px; border-radius:3px;
-              background:${cfg.color}; opacity:.12;
-              animation: pulseRing ${1.8 + asset.id * 0.15}s ease-in-out infinite;
-            "></div>
-            <div style="
-              width:12px; height:12px; border-radius:2.5px;
-              background:${cfg.color}; opacity:.9;
-              box-shadow:0 0 6px ${cfg.color}, 0 0 16px ${cfg.color}60;
-              transition:transform .15s, box-shadow .15s;
-              position:relative; z-index:1;
-            " class="core"></div>
-          </div>`;
-
-        el.addEventListener('mouseenter', (e) => {
-          el.querySelector('.core').style.transform = 'scale(1.5)';
-          el.querySelector('.core').style.boxShadow = `0 0 12px ${cfg.color}, 0 0 28px ${cfg.color}80`;
-          setTooltip(asset);
-          setHoverPos({ x: e.clientX, y: e.clientY });
-          setClusterTooltip(null);
-        });
-        el.addEventListener('mouseleave', () => {
-          el.querySelector('.core').style.transform = 'scale(1)';
-          el.querySelector('.core').style.boxShadow = `0 0 6px ${cfg.color}, 0 0 16px ${cfg.color}60`;
-          setTooltip(null);
-        });
-        el.addEventListener('mousemove', (e) => {
-          setHoverPos({ x: e.clientX, y: e.clientY });
-        });
-      }
+      el.addEventListener('mouseenter', () => {
+        setHoveredAssetId(asset.id);
+        setTooltip(asset);
+      });
+      el.addEventListener('mouseleave', () => {
+        setHoveredAssetId(null);
+        setTooltip(null);
+      });
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setSelectedAssetId(isSelected ? null : asset.id);
+      });
 
       const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
         .setLngLat([lng, lat])
         .addTo(map);
       markersRef.current.push(marker);
     });
-  }, [filteredAssets, getClusterColor]);
+  }, [hoveredAssetId, selectedAssetId, riskKey, setHoveredAssetId, setSelectedAssetId, europeAssets]);
 
   // Toggle 3D pitch
   const toggle3D = useCallback(() => {
@@ -299,13 +223,15 @@ const MapView = ({ filteredAssets }) => {
     const map = new maplibregl.Map({
       container: mapContainer.current,
       style: MAP_STYLE,
-      center: [15, 40],
-      zoom: 2,
-      minZoom: 1,
+      center: [15, 50], // Focused on Europe
+      zoom: 3.8,        // Zoomed in to fit Europe
+      minZoom: 3,
       maxZoom: 18,
-      scrollZoom: true, // ← native scroll zoom enabled
+      maxBounds: [[-30, 30], [50, 75]], // Restrict movement to Europe area
+      scrollZoom: true,
       pitchWithRotate: true,
       attributionControl: false,
+      renderWorldCopies: false, // Prevents markers from jumping to other world copies at low zoom
     });
 
     mapRef.current = map;
@@ -318,6 +244,14 @@ const MapView = ({ filteredAssets }) => {
     map.on('moveend', renderMarkers);
     map.on('zoomend', renderMarkers);
 
+    // Clear hovers when map is actively moving to prevent stuck floating tooltips
+    const clearHovers = () => {
+      setTooltip(null);
+    };
+    map.on('zoomstart', clearHovers);
+    map.on('dragstart', clearHovers);
+    map.on('pitchstart', clearHovers);
+
     // Add attribution
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
 
@@ -328,12 +262,42 @@ const MapView = ({ filteredAssets }) => {
     };
   }, []);
 
-  // Re-render markers when data changes
+  // Dynamic position updates during map move to keep tooltips exactly on pins
+  const updatePositions = useCallback(() => {
+    if (!mapRef.current || !mapContainer.current) return;
+    const map = mapRef.current;
+    const rect = mapContainer.current.getBoundingClientRect();
+
+    if (selectedAssetId) {
+      const a = europeAssets.find(x => x.id === selectedAssetId);
+      if (a) {
+        const p = map.project(a.coordinates);
+        setSelectedAssetPos({ x: p.x + rect.left, y: p.y + rect.top });
+      }
+    }
+    if (tooltip) {
+      const p = map.project(tooltip.coordinates);
+      setHoverPos({ x: p.x + rect.left, y: p.y + rect.top });
+    }
+  }, [selectedAssetId, tooltip, europeAssets]);
+
+  useEffect(() => {
+    updatePositions();
+    const map = mapRef.current;
+    if (map) {
+      map.on('move', updatePositions);
+      return () => map.off('move', updatePositions);
+    }
+  }, [updatePositions]);
+
+  // Re-render markers when data changes or selections change
   useEffect(() => {
     if (mapRef.current?.loaded()) {
       renderMarkers();
     }
-  }, [filteredAssets, renderMarkers]);
+  }, [europeAssets, renderMarkers]);
+
+  const activeSelectedAsset = europeAssets.find(a => a.id === selectedAssetId);
 
   return (
     <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
@@ -351,11 +315,18 @@ const MapView = ({ filteredAssets }) => {
       `}</style>
 
       {/* Map container */}
-      <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
+      <div
+        ref={mapContainer}
+        style={{ width: '100%', height: '100%' }}
+        onClick={() => setSelectedAssetId(null)}
+      />
 
       {/* Tooltips */}
-      <MapTooltip asset={tooltip} pos={hoverPos} onClose={() => setTooltip(null)} />
-      <ClusterTooltip cluster={clusterTooltip} pos={hoverPos} assets={filteredAssets} />
+      {activeSelectedAsset ? (
+        <MapTooltip asset={activeSelectedAsset} pos={selectedAssetPos} riskKey={riskKey} onClose={() => setSelectedAssetId(null)} />
+      ) : (
+        <MapTooltip asset={tooltip} pos={hoverPos} riskKey={riskKey} onClose={() => setTooltip(null)} />
+      )}
 
       {/* Top-right controls */}
       <div style={{ position: 'absolute', top: 14, right: 14, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -395,7 +366,7 @@ const MapView = ({ filteredAssets }) => {
         background: 'rgba(8,9,18,0.8)', border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: 6, padding: '4px 10px', backdropFilter: 'blur(10px)',
       }}>
-        {filteredAssets.length} assets visible
+        {europeAssets.length} assets visible
       </div>
 
       {/* Legend */}
