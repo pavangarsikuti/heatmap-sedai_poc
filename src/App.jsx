@@ -13,6 +13,7 @@ const DEFAULT_FILTERS = {
   assetType: 'All',
   status: 'All',
   country: 'All',
+  percentage: 'All',
 };
 
 const App = () => {
@@ -20,9 +21,11 @@ const App = () => {
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [theme, setTheme] = useState('dark');
+  const [focusAsset, setFocusAsset] = useState(null);
 
   const handleToggleSidebar = () => setIsSidebarOpen(prev => !prev);
   const handleThemeChange = (newTheme) => setTheme(newTheme);
+  const handleAssetClick = (asset) => setFocusAsset({ ...asset, _t: Date.now() });
 
   const handleFilterChange = (key, value) => {
     if (key === 'reset') {
@@ -52,6 +55,10 @@ const App = () => {
       if (filters.assetType !== 'All' && asset.assetType !== filters.assetType) return false;
       if (filters.status !== 'All' && asset.status !== filters.status) return false;
       if (filters.country !== 'All' && asset.country !== filters.country) return false;
+      if (filters.percentage !== 'All') {
+        const [min, max] = filters.percentage.split('-').map(Number);
+        if (asset.score < min || (max === 100 ? asset.score > max : asset.score >= max)) return false;
+      }
       return true;
     });
   }, [filters]);
@@ -80,6 +87,7 @@ const App = () => {
                 assets={filteredAssets} 
                 isOpen={isSidebarOpen} 
                 onToggle={handleToggleSidebar} 
+                onAssetClick={handleAssetClick}
               />
             </div>
 
@@ -91,6 +99,7 @@ const App = () => {
                 onToggleSidebar={handleToggleSidebar}
                 theme={theme}
                 onThemeChange={handleThemeChange}
+                focusAsset={focusAsset}
               />
               <Footer assets={filteredAssets} />
             </main>

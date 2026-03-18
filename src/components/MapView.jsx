@@ -127,7 +127,7 @@ const ClusterTooltip = ({ cluster, pos, assets }) => {
 };
 
 // ── Main MapView ───────────────────────────────────────────────────────────────
-const MapView = ({ filteredAssets, isSidebarOpen, onToggleSidebar, theme, onThemeChange }) => {
+const MapView = ({ filteredAssets, isSidebarOpen, onToggleSidebar, theme, onThemeChange, focusAsset }) => {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
@@ -432,6 +432,25 @@ const MapView = ({ filteredAssets, isSidebarOpen, onToggleSidebar, theme, onThem
     }
   }, [isSidebarOpen]);
 
+  // Focus asset from sidebar
+  useEffect(() => {
+    if (focusAsset && mapRef.current && mapRef.current.loaded()) {
+      mapRef.current.flyTo({ center: focusAsset.coordinates, zoom: 16, duration: 2500 });
+      setPinnedAssetId(focusAsset.id);
+      setTooltip(null);
+      setClusterTooltip(null);
+      
+      const updatePinnedPos = () => {
+        if (!mapRef.current || !mapContainer.current) return;
+        const pos = mapRef.current.project(focusAsset.coordinates);
+        const rect = mapContainer.current.getBoundingClientRect();
+        setPinnedPos({ x: rect.left + pos.x, y: rect.top + pos.y });
+      };
+      updatePinnedPos();
+      mapRef.current.once('moveend', updatePinnedPos);
+    }
+  }, [focusAsset]);
+
   return (
     <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
       <style>{`
@@ -481,7 +500,7 @@ const MapView = ({ filteredAssets, isSidebarOpen, onToggleSidebar, theme, onThem
         </button>
 
         {/* 3D Toggle */}
-        <button
+        {/* <button
           onClick={toggle3D}
           title="Toggle 3D view"
           style={{
@@ -497,7 +516,7 @@ const MapView = ({ filteredAssets, isSidebarOpen, onToggleSidebar, theme, onThem
         >
           <Layers size={12} />
           {is3D ? '3D ON' : '3D OFF'}
-        </button>
+        </button> */}
 
         {/* Zoom level badge */}
         <div style={{
