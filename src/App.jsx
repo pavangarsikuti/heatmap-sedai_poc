@@ -7,7 +7,7 @@ import Footer from './components/Footer';
 import { ASSETS_DATA } from './data/assets';
 
 const DEFAULT_FILTERS = {
-  mode: 'Overall Risk',
+  riskType: 'All Risks',
   timeframe: '12 Months',
   fund: 'All',
   assetType: 'All',
@@ -33,7 +33,21 @@ const App = () => {
   };
 
   const filteredAssets = useMemo(() => {
-    return ASSETS_DATA.filter(asset => {
+    let processAssets = ASSETS_DATA.map(asset => {
+      if (filters.riskType !== 'All Risks' && asset.risks && asset.risks[filters.riskType]) {
+        const riskData = asset.risks[filters.riskType];
+        return {
+          ...asset,
+          score: riskData.score,
+          trend: riskData.trend,
+          trendDir: riskData.trendDir,
+          status: riskData.status,
+        };
+      }
+      return asset;
+    });
+
+    return processAssets.filter(asset => {
       if (filters.fund !== 'All' && asset.fund !== filters.fund) return false;
       if (filters.assetType !== 'All' && asset.assetType !== filters.assetType) return false;
       if (filters.status !== 'All' && asset.status !== filters.status) return false;

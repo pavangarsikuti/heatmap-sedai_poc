@@ -6,7 +6,7 @@ import { STATUS_CONFIG } from '../data/assets';
 import { X, TrendingUp, TrendingDown, ChevronRight, Layers, Compass } from 'lucide-react';
 
 // ── Tooltip ────────────────────────────────────────────────────────────────────
-const MapTooltip = ({ asset, pos, onClose }) => {
+const MapTooltip = ({ asset, pos, onClose, pinned }) => {
   if (!asset) return null;
   const cfg = STATUS_CONFIG[asset.status];
   const TrendIcon = asset.trendDir === 'up' ? TrendingUp : TrendingDown;
@@ -27,7 +27,7 @@ const MapTooltip = ({ asset, pos, onClose }) => {
       overflow: 'hidden',
       boxShadow: `0 32px 72px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04), 0 0 50px ${cfg.color}12`,
       animation: 'fadeIn .15s ease',
-      pointerEvents: 'none',
+      pointerEvents: pinned ? 'auto' : 'none',
     }}>
       <div style={{ padding: '13px 15px 10px', background: 'rgba(255,255,255,0.02)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -35,6 +35,14 @@ const MapTooltip = ({ asset, pos, onClose }) => {
             <div style={{ fontSize: 10, fontWeight: 600, color: '#475569', marginBottom: 3 }}>{asset.city}, {asset.country}</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>{asset.name}</div>
           </div>
+          {pinned && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onClose && onClose(); }}
+              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 2, height: 'fit-content' }}
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
           <span style={{ fontSize: 28, fontWeight: 800, color: cfg.color, lineHeight: 1 }}>{asset.score}</span>
@@ -127,10 +135,12 @@ const MapView = ({ filteredAssets, isSidebarOpen, onToggleSidebar, theme, onThem
   const filteredAssetsRef = useRef(filteredAssets);
   const is3DRef = useRef(false);
   const [tooltip, setTooltip] = useState(null);
+  const [pinnedAssetId, setPinnedAssetId] = useState(null);
+  const [pinnedPos, setPinnedPos] = useState({ x: 0, y: 0 });
   const [clusterTooltip, setClusterTooltip] = useState(null);
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
   const [is3D, setIs3D] = useState(false);
-  const [currentZoom, setCurrentZoom] = useState(2);
+  const [currentZoom, setCurrentZoom] = useState(3.5);
 
   // Map styles
   const LIGHT_STYLE = 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png';
@@ -270,17 +280,30 @@ const MapView = ({ filteredAssets, isSidebarOpen, onToggleSidebar, theme, onThem
         el.addEventListener('mouseenter', (e) => {
           el.querySelector('.core').style.transform = 'scale(1.5)';
           el.querySelector('.core').style.boxShadow = `0 0 12px ${cfg.color}, 0 0 28px ${cfg.color}80`;
-          setTooltip(asset);
-          setHoverPos({ x: e.clientX, y: e.clientY });
-          setClusterTooltip(null);
+          if (!pinnedAssetId) {
+            setTooltip(asset);
+            setHoverPos({ x: e.clientX, y: e.clientY });
+            setClusterTooltip(null);
+          }
         });
         el.addEventListener('mouseleave', () => {
           el.querySelector('.core').style.transform = 'scale(1)';
           el.querySelector('.core').style.boxShadow = `0 0 6px ${cfg.color}, 0 0 16px ${cfg.color}60`;
-          setTooltip(null);
+          if (!pinnedAssetId) {
+            setTooltip(null);
+          }
         });
         el.addEventListener('mousemove', (e) => {
-          setHoverPos({ x: e.clientX, y: e.clientY });
+          if (!pinnedAssetId) {
+            setHoverPos({ x: e.clientX, y: e.clientY });
+          }
+        });
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setPinnedAssetId(asset.id);
+          setPinnedPos({ x: e.clientX, y: e.clientY });
+          setTooltip(null);
+          setClusterTooltip(null);
         });
       }
 
@@ -319,14 +342,22 @@ const MapView = ({ filteredAssets, isSidebarOpen, onToggleSidebar, theme, onThem
     const map = new maplibregl.Map({
       container: mapContainer.current,
       style: MAP_STYLE,
-      center: [15, 40],
-      zoom: 2,
-      minZoom: 1,
+      center: [10, 50],
+      zoom: 3.5,
+      minZoom: 3,
       maxZoom: 18,
+      maxBounds: [
+        [-35, 30], // Southwest coordinates (approx below Spain/Portugal)
+        [45, 75]   // Northeast coordinates (approx past Finland/Moscow)
+      ],
       projection: { name: 'globe' }, // ← Enable 3D Globe
       scrollZoom: true,
       pitchWithRotate: true,
       attributionControl: false,
+    });
+
+    map.on('click', () => {
+      setPinnedAssetId(null);
     });
 
     mapRef.current = map;
@@ -420,7 +451,12 @@ const MapView = ({ filteredAssets, isSidebarOpen, onToggleSidebar, theme, onThem
       <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
 
       {/* Tooltips */}
-      <MapTooltip asset={tooltip} pos={hoverPos} onClose={() => setTooltip(null)} />
+      <MapTooltip 
+        asset={pinnedAssetId ? filteredAssets.find(a => a.id === pinnedAssetId) : tooltip} 
+        pos={pinnedAssetId ? pinnedPos : hoverPos} 
+        onClose={() => { setTooltip(null); setPinnedAssetId(null); }} 
+        pinned={!!pinnedAssetId}
+      />
       <ClusterTooltip cluster={clusterTooltip} pos={hoverPos} assets={filteredAssets} />
 
       {/* Top-right controls */}

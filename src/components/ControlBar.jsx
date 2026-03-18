@@ -6,16 +6,17 @@ const COUNTRIES = ['All', ...Array.from(new Set(ASSETS_DATA.map(a => a.country))
 
 const ControlBar = ({ filters, onFilterChange }) => {
   const filterDefs = [
-    { key: 'mode', label: 'Mode', options: ['Overall Risk', 'Portfolio Risk', 'Asset Risk'] },
+    { key: 'riskType', label: 'Risk Type', options: ['All Risks', 'Market', 'Political', 'Climate', 'Financial', 'Social', 'Other'] },
     { key: 'timeframe', label: 'Timeframe', options: ['3 Months', '6 Months', '12 Months', '24 Months'] },
-    { key: 'fund', label: 'Funds', options: FUNDS },
+    // { key: 'fund', label: 'Funds', options: FUNDS },
     { key: 'assetType', label: 'Asset Types', options: ASSET_TYPES },
     { key: 'status', label: 'Risk Level', options: STATUSES },
     { key: 'country', label: 'Country', options: COUNTRIES },
+    {key:'percentage',label:'Percentage',options:['All','0-25','25-50','50-75','75-100']}
   ];
 
   const activeFilters = Object.entries(filters).filter(
-    ([k, v]) => !['mode', 'timeframe'].includes(k) && v !== 'All'
+    ([k, v]) => !['riskType', 'timeframe'].includes(k) && v !== 'All'
   ).length;
 
   return (
