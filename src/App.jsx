@@ -14,6 +14,7 @@ const DEFAULT_FILTERS = {
   status: 'All',
   country: 'All',
   percentage: 'All',
+  viewMode: 'Assets',
 };
 
 const App = () => {
@@ -37,17 +38,23 @@ const App = () => {
 
   const filteredAssets = useMemo(() => {
     let processAssets = ASSETS_DATA.map(asset => {
+      let finalAsset = { ...asset };
+      
+      // Simulate timeframe impact
+      const tfMultiplier = filters.timeframe === '3 Months' ? 0.8 : filters.timeframe === '6 Months' ? 0.9 : 1.0;
+      finalAsset.score = Math.round(finalAsset.score * tfMultiplier * 10) / 10;
+
       if (filters.riskType !== 'All Risks' && asset.risks && asset.risks[filters.riskType]) {
         const riskData = asset.risks[filters.riskType];
-        return {
-          ...asset,
-          score: riskData.score,
+        finalAsset = {
+          ...finalAsset,
+          score: Math.round(riskData.score * tfMultiplier * 10) / 10,
           trend: riskData.trend,
           trendDir: riskData.trendDir,
           status: riskData.status,
         };
       }
-      return asset;
+      return finalAsset;
     });
 
     return processAssets.filter(asset => {
@@ -95,6 +102,7 @@ const App = () => {
               <ControlBar filters={filters} onFilterChange={handleFilterChange} />
               <MapView 
                 filteredAssets={filteredAssets} 
+                viewMode={filters.viewMode}
                 isSidebarOpen={isSidebarOpen} 
                 onToggleSidebar={handleToggleSidebar}
                 theme={theme}

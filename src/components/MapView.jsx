@@ -5,6 +5,85 @@ import Supercluster from 'supercluster';
 import { STATUS_CONFIG } from '../data/assets';
 import { X, TrendingUp, TrendingDown, ChevronRight, Layers, Compass } from 'lucide-react';
 
+// ── Radar Chart ──────────────────────────────────────────────────────────────
+const RadarChart = ({ data, size = 120, color = '#3b82f6' }) => {
+  const padding = 20;
+  const radius = (size / 2) - padding;
+  const centerX = size / 2;
+  const centerY = size / 2;
+  const angleStep = (Math.PI * 2) / data.length;
+
+  const points = data.map((d, i) => {
+    const r = (d.A / 100) * radius;
+    const x = centerX + r * Math.sin(i * angleStep);
+    const y = centerY - r * Math.cos(i * angleStep);
+    return `${x},${y}`;
+  }).join(' ');
+
+  const gridLevels = [0.25, 0.5, 0.75, 1];
+
+  return (
+    <svg width={size} height={size} style={{ overflow: 'visible' }}>
+      {/* Grid */}
+      {gridLevels.map(level => {
+        const r = level * radius;
+        const gridPoints = data.map((_, i) => {
+          const x = centerX + r * Math.sin(i * angleStep);
+          const y = centerY - r * Math.cos(i * angleStep);
+          return `${x},${y}`;
+        }).join(' ');
+        return (
+          <polygon
+            key={level}
+            points={gridPoints}
+            fill="none"
+            stroke="rgba(255,255,255,0.05)"
+            strokeWidth="0.5"
+          />
+        );
+      })}
+      {/* Spokes */}
+      {data.map((_, i) => {
+        const x = centerX + radius * Math.sin(i * angleStep);
+        const y = centerY - radius * Math.cos(i * angleStep);
+        return (
+          <line
+            key={i}
+            x1={centerX} y1={centerY} x2={x} y2={y}
+            stroke="rgba(255,255,255,0.05)"
+            strokeWidth="0.5"
+          />
+        );
+      })}
+      {/* Labels */}
+      {data.map((d, i) => {
+        const x = centerX + (radius + 10) * Math.sin(i * angleStep);
+        const y = centerY - (radius + 10) * Math.cos(i * angleStep);
+        return (
+          <text
+            key={i}
+            x={x} y={y}
+            fontSize="8"
+            fill="#64748b"
+            fontWeight="700"
+            textAnchor="middle"
+            alignmentBaseline="middle"
+          >
+            {d.subject.toUpperCase()}
+          </text>
+        );
+      })}
+      {/* Data Polygon */}
+      <polygon
+        points={points}
+        fill={`${color}30`}
+        stroke={color}
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+};
+
 // ── Tooltip ────────────────────────────────────────────────────────────────────
 const MapTooltip = ({ asset, pos, onClose, pinned }) => {
   if (!asset) return null;
@@ -15,77 +94,135 @@ const MapTooltip = ({ asset, pos, onClose, pinned }) => {
   return (
     <div style={{
       position: 'fixed',
-      left: Math.min(pos.x + 20, window.innerWidth - 314),
+      left: Math.min(pos.x + 20, window.innerWidth - 620),
       top: Math.max(pos.y - 170, 8),
       zIndex: 9999,
-      width: 294,
-      background: 'rgba(7,8,17,0.97)',
-      backdropFilter: 'blur(20px)',
-      border: `1px solid ${cfg.color}35`,
-      borderTop: `3px solid ${cfg.color}`,
-      borderRadius: 10,
+      display: 'flex',
+      gap: 0,
+      background: 'rgba(7,8,17,0.95)',
+      backdropFilter: 'blur(28px)',
+      border: `1px solid rgba(255,255,255,0.08)`,
+      borderRadius: 14,
       overflow: 'hidden',
-      boxShadow: `0 32px 72px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04), 0 0 50px ${cfg.color}12`,
-      animation: 'fadeIn .15s ease',
+      boxShadow: `0 32px 72px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.03)`,
+      animation: 'fadeIn .2s ease',
       pointerEvents: pinned ? 'auto' : 'none',
+      width: 600,
     }}>
-      <div style={{ padding: '13px 15px 10px', background: 'rgba(255,255,255,0.02)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#475569', marginBottom: 3 }}>{asset.city}, {asset.country}</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>{asset.name}</div>
+      {/* CARD 1: OVERVIEW (Original Data) */}
+      <div style={{ flex: 1, borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)', background: 'rgba(255,255,255,0.01)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', marginBottom: 4, letterSpacing: '0.05em' }}>{asset.city}, {asset.country}</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#f8fafc' }}>{asset.name}</div>
+            </div>
+            {!asset.image && pinned && (
+               <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+                <X size={16} />
+              </button>
+            )}
           </div>
-          {pinned && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onClose && onClose(); }}
-              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 2, height: 'fit-content' }}
-            >
-              <X size={14} />
-            </button>
-          )}
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
+            <span style={{ fontSize: 32, fontWeight: 900, color: cfg.color, lineHeight: 1 }}>{asset.score}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: trendColor, fontSize: 11, fontWeight: 800 }}>
+              <TrendIcon size={12} />{asset.trend}
+            </div>
+            <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+              <div style={{ fontSize: 9, fontWeight: 800, color: cfg.color, background: cfg.bg, padding: '3px 10px', borderRadius: 5, display: 'inline-block' }}>
+                {asset.status}
+              </div>
+              <div style={{ fontSize: 9, color: '#334155', fontWeight: 600, marginTop: 4 }}>{asset.units}</div>
+            </div>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
-          <span style={{ fontSize: 28, fontWeight: 800, color: cfg.color, lineHeight: 1 }}>{asset.score}</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: trendColor, fontSize: 10, fontWeight: 700 }}>
-            <TrendIcon size={11} />{asset.trend}
-          </div>
-          <span style={{ fontSize: 10, color: '#334155', fontWeight: 600 }}>{asset.units}</span>
-          <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', color: cfg.color, background: cfg.bg, padding: '2px 8px', borderRadius: 4 }}>
-            {asset.status}
+
+        <div style={{ padding: '16px 20px', flex: 1 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: '#334155', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>Key Risk Drivers</div>
+          {asset.drivers.map((d, i) => (
+            <div key={i} style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: d.color }} />
+                  <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
+                    {d.label} {d.desc && <span style={{ color: '#475569', fontSize: 10 }}>({d.desc})</span>}
+                  </span>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#f1f5f9' }}>{d.value}%</span>
+              </div>
+              <div style={{ height: 3, background: 'rgba(255,255,255,0.04)', borderRadius: 10, overflow: 'hidden' }}>
+                <div style={{ width: `${d.value}%`, height: '100%', background: d.color, borderRadius: 10 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
+          <span style={{ fontSize: 10, color: '#475569' }}>
+            Fund: <span style={{ color: '#94a3b8' }}>{asset.fund}</span>
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#3b82f6', fontSize: 10, fontWeight: 800 }}>
+            Full Report <ChevronRight size={10} />
           </span>
         </div>
       </div>
 
-      <div style={{ padding: '11px 15px' }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: '#334155', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 9 }}>Key Drivers</div>
-        {asset.drivers.map((d, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <div style={{ width: 5, height: 5, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
-              <span style={{ fontSize: 10, color: '#94a3b8' }}>
-                {d.label}{d.desc && <span style={{ color: '#475569' }}> ({d.desc})</span>}
-              </span>
+      {/* CARD 2: ANALYTICS (New Data) */}
+      <div style={{ flex: 1, background: 'rgba(255,255,255,0.01)', display: 'flex', flexDirection: 'column' }}>
+        {/* Building Image */}
+        {asset.image && (
+          <div style={{ height: 160, width: '100%', overflow: 'hidden', position: 'relative' }}>
+            <img src={asset.image} alt={asset.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(7,8,17,0.9), transparent)' }} />
+            {pinned && (
+              <button
+                onClick={onClose}
+                style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', cursor: 'pointer', padding: 6, borderRadius: '50%', display: 'flex' }}
+              >
+                <X size={14} />
+              </button>
+            )}
+            <div style={{ position: 'absolute', bottom: 12, left: 16 }}>
+               <div style={{ fontSize: 9, fontWeight: 800, color: '#3b82f6', background: 'rgba(59,130,246,0.15)', padding: '2px 8px', borderRadius: 4, border: '1px solid rgba(59,130,246,0.3)', backdropFilter: 'blur(8px)' }}>
+                SATELLITE VIEW
+              </div>
             </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0' }}>{d.value}%</span>
           </div>
-        ))}
-        <div style={{ marginTop: 8 }}>
-          {asset.drivers.map((d, i) => (
-            <div key={i} style={{ height: 2, background: 'rgba(255,255,255,0.05)', borderRadius: 999, marginBottom: 4, overflow: 'hidden' }}>
-              <div style={{ width: `${d.value}%`, height: '100%', background: d.color, borderRadius: 999 }} />
-            </div>
-          ))}
-        </div>
-      </div>
+        )}
 
-      <div style={{ padding: '9px 15px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 9, color: '#334155' }}>
-          Confidence – <span style={{ color: '#64748b' }}>{asset.confidence}</span>
-          &nbsp;·&nbsp;Fund: <span style={{ color: '#64748b' }}>{asset.fund}</span>
-        </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 3, color: '#3b82f6', fontSize: 9, fontWeight: 700 }}>
-          Stats <ChevronRight size={9} />
-        </span>
+        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0' }}>
+            <RadarChart data={asset.radarData || []} size={130} color={cfg.color} />
+          </div>
+
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: '#334155', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>3-6M Predictive Forecast</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+              <div style={{ flex: 1, background: 'rgba(46,204,113,0.05)', padding: '10px', borderRadius: 8, border: '1px solid rgba(46,204,113,0.1)', textAlign: 'center' }}>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#2ecc71' }}>{asset.predictions?.increase}%</div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: '#475569', marginTop: 2 }}>INCREASE</div>
+              </div>
+              <div style={{ flex: 1, background: 'rgba(255,77,77,0.05)', padding: '10px', borderRadius: 8, border: '1px solid rgba(255,77,77,0.1)', textAlign: 'center' }}>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#ff4d4d' }}>{asset.predictions?.decrease}%</div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: '#475569', marginTop: 2 }}>DECREASE</div>
+              </div>
+              <div style={{ flex: 1, background: 'rgba(148,163,184,0.05)', padding: '10px', borderRadius: 8, border: '1px solid rgba(148,163,184,0.1)', textAlign: 'center' }}>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#94a3b8' }}>{asset.predictions?.stable}%</div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: '#475569', marginTop: 2 }}>STABLE</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.1)' }}>
+          <div style={{ fontSize: 10, color: '#475569' }}>
+            Confidence: <span style={{ color: '#2ecc71', fontWeight: 800 }}>{asset.confidence}</span>
+          </div>
+          <div style={{ fontSize: 10, color: '#475569' }}>
+            Valuation: <span style={{ color: '#fff', fontWeight: 800 }}>{asset.value}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -127,7 +264,7 @@ const ClusterTooltip = ({ cluster, pos, assets }) => {
 };
 
 // ── Main MapView ───────────────────────────────────────────────────────────────
-const MapView = ({ filteredAssets, isSidebarOpen, onToggleSidebar, theme, onThemeChange, focusAsset }) => {
+const MapView = ({ filteredAssets, viewMode, isSidebarOpen, onToggleSidebar, theme, onThemeChange, focusAsset }) => {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
@@ -193,6 +330,68 @@ const MapView = ({ filteredAssets, isSidebarOpen, onToggleSidebar, theme, onThem
     const zoom = Math.floor(map.getZoom());
     setCurrentZoom(zoom);
 
+    if (viewMode === 'Regions') {
+      // ── Region Mode ──
+      const countries = Array.from(new Set(assets.map(a => a.country)));
+      countries.forEach(country => {
+        const countryAssets = assets.filter(a => a.country === country);
+        const count = countryAssets.length;
+        
+        // Calculate average coordinates for the country marker
+        const avgLng = countryAssets.reduce((sum, a) => sum + a.coordinates[0], 0) / count;
+        const avgLat = countryAssets.reduce((sum, a) => sum + a.coordinates[1], 0) / count;
+        
+        // Get highest severity for color
+        const statuses = ['CRITICAL', 'ELEVATED', 'MODERATE', 'SAFE'];
+        let color = STATUS_CONFIG.SAFE.color;
+        for (const s of statuses) {
+          if (countryAssets.some(a => a.status === s)) {
+            color = STATUS_CONFIG[s].color;
+            break;
+          }
+        }
+
+        const el = document.createElement('div');
+        el.style.cssText = 'width:0; height:0; display:flex; align-items:center; justify-content:center; position:relative; cursor:pointer;';
+        
+        const size = Math.min(40 + count * 8, 80);
+        el.innerHTML = `
+          <div style="
+            width:${size}px; height:${size}px; border-radius:50%;
+            background:${color}15; border:1px solid ${color}44;
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            position:absolute; backdrop-filter:blur(4px);
+            box-shadow: 0 0 30px ${color}15, inset 0 0 20px ${color}10;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          " class="region-marker">
+            <div style="font-size:9px; font-weight:800; color:${color}; margin-bottom:2px; letter-spacing:0.05em;">${country.toUpperCase()}</div>
+            <div style="font-size:16px; font-weight:800; color:#fff;">${count}</div>
+            <div style="font-size:7px; font-weight:700; color:#475569; margin-top:2px;">ASSETS</div>
+          </div>`;
+
+        el.addEventListener('mouseenter', () => {
+          el.querySelector('.region-marker').style.transform = 'scale(1.1)';
+          el.querySelector('.region-marker').style.background = `${color}25`;
+          el.querySelector('.region-marker').style.boxShadow = `0 0 50px ${color}30, inset 0 0 30px ${color}20`;
+        });
+        el.addEventListener('mouseleave', () => {
+          el.querySelector('.region-marker').style.transform = 'scale(1)';
+          el.querySelector('.region-marker').style.background = `${color}15`;
+          el.querySelector('.region-marker').style.boxShadow = `0 0 30px ${color}15, inset 0 0 20px ${color}10`;
+        });
+        el.addEventListener('click', () => {
+          map.flyTo({ center: [avgLng, avgLat], zoom: 6, duration: 1500 });
+        });
+
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([avgLng, avgLat])
+          .addTo(map);
+        markersRef.current.push(marker);
+      });
+      return;
+    }
+
+    // ── Assets Mode (Clustered) ──
     // Build supercluster
     const sc = new Supercluster({ radius: 60, maxZoom: 14 });
     const points = assets.map(a => ({
@@ -252,7 +451,7 @@ const MapView = ({ filteredAssets, isSidebarOpen, onToggleSidebar, theme, onThem
           setHoverPos({ x: e.clientX, y: e.clientY });
         });
         el.addEventListener('click', () => {
-          map.flyTo({ center: [lng, lat], zoom: zoom + 2, duration: 700 });
+          map.flyTo({ center: [lng, lat], zoom: zoom + 2, duration: 1000, essential: true });
         });
 
       } else {
@@ -301,9 +500,14 @@ const MapView = ({ filteredAssets, isSidebarOpen, onToggleSidebar, theme, onThem
         el.addEventListener('click', (e) => {
           e.stopPropagation();
           setPinnedAssetId(asset.id);
-          setPinnedPos({ x: e.clientX, y: e.clientY });
+          // Calculate project position manually to ensure tooltip is correctly placed
+          const projectPos = map.project(asset.coordinates);
+          const rect = mapContainer.current.getBoundingClientRect();
+          setPinnedPos({ x: rect.left + projectPos.x, y: rect.top + projectPos.y });
+          
           setTooltip(null);
           setClusterTooltip(null);
+          map.flyTo({ center: asset.coordinates, zoom: 16, duration: 2000, essential: true });
         });
       }
 
@@ -312,7 +516,7 @@ const MapView = ({ filteredAssets, isSidebarOpen, onToggleSidebar, theme, onThem
         .addTo(map);
       markersRef.current.push(marker);
     });
-  }, [getClusterColor]);
+  }, [getClusterColor, viewMode, pinnedAssetId]);
 
   // Keep renderMarkersRef updated
   useEffect(() => {

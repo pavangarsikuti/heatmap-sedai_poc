@@ -7,16 +7,15 @@ const COUNTRIES = ['All', ...Array.from(new Set(ASSETS_DATA.map(a => a.country))
 const ControlBar = ({ filters, onFilterChange }) => {
   const filterDefs = [
     { key: 'riskType', label: 'Risk Type', options: ['All Risks', 'Market', 'Political', 'Climate', 'Financial', 'Social', 'Other'] },
-    { key: 'timeframe', label: 'Timeframe', options: ['3 Months', '6 Months', '12 Months', '24 Months'] },
-    // { key: 'fund', label: 'Funds', options: FUNDS },
-    { key: 'assetType', label: 'Asset Types', options: ASSET_TYPES },
+    { key: 'timeframe', label: 'Timeframe', options: ['3 Months', '6 Months', '12 Months'] },
     { key: 'status', label: 'Risk Level', options: STATUSES },
+    { key: 'percentage', label: 'Percentage', options: ['All', '0-25', '25-50', '50-75', '75-100'] },
+    { key: 'assetType', label: 'Asset Types', options: ASSET_TYPES },
     { key: 'country', label: 'Country', options: COUNTRIES },
-    {key:'percentage',label:'Percentage',options:['All','0-25','25-50','50-75','75-100']}
   ];
 
   const activeFilters = Object.entries(filters).filter(
-    ([k, v]) => !['riskType', 'timeframe'].includes(k) && v !== 'All'
+    ([k, v]) => !['riskType', 'timeframe', 'viewMode'].includes(k) && v !== 'All'
   ).length;
 
   return (
@@ -33,6 +32,31 @@ const ControlBar = ({ filters, onFilterChange }) => {
       overflowX: 'auto',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+        {/* View Mode Toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: 2, border: '1px solid rgba(255,255,255,0.08)' }}>
+          {['Assets', 'Regions'].map(m => (
+            <button
+              key={m}
+              onClick={() => onFilterChange('viewMode', m)}
+              style={{
+                padding: '4px 10px',
+                fontSize: 9,
+                fontWeight: 800,
+                borderRadius: 4,
+                border: 'none',
+                cursor: 'pointer',
+                background: filters.viewMode === m ? 'rgba(59,130,246,0.2)' : 'transparent',
+                color: filters.viewMode === m ? '#3b82f6' : '#475569',
+                transition: 'all 0.2s',
+              }}
+            >
+              {m.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ height: 16, width: 1, background: 'rgba(255,255,255,0.1)' }} />
+
         {filterDefs.map(({ key, label, options }) => (
           <FilterDropdown
             key={key}

@@ -24,11 +24,38 @@ const adjustRisks = (risks) => {
   return risks;
 };
 
+// Specific premium architectural photo IDs from Unsplash
+const IMG_IDS = [
+  '1486406146926-c627a92ad1ab', // Modern office
+  '1464938050520-ef2270bb8ce8', // Glass skyscraper
+  '1554995207-c18c20360b59', // Industrial complex
+  '1497366216548-37526070297c', // Modern interior/office
+  '1449156003143-bc0868f0294e', // Retail/Street
+  '1577494165997-897d9e4e6d45', // Mixed use
+  '1504307651254-3b5b19ef99fc', // Tech center
+  '1582035210969-9051897c8808', // Luxury building
+  '1479839672679-a46483c0e7c8', // Waterfront
+  '1497215728101-856f4ea42174', // Workspace
+  '1531834316654-e74c87895e6f', // Modern building
+  '1486406146926-c627a92ad1ab'  // Repeat first
+];
+
+const getBuildingImg = (id) => `https://images.unsplash.com/photo-${IMG_IDS[(id - 1) % IMG_IDS.length]}?auto=format&fit=crop&q=80&w=600&h=400`;
+
 export const ASSETS_DATA = [
   {
     id: 1, name: 'Zurich Industrial Complex', city: 'Zurich', country: 'Switzerland',
     coordinates: [8.5417, 47.3769], score: 71.9, trend: '+5%', trendDir: 'up', status: 'CRITICAL',
     fund: 'MLT Alpha', assetType: 'Industrial', units: '234 TEU', confidence: 'HIGH', value: '$89.2M',
+    image: getBuildingImg(1),
+    predictions: { increase: 12, decrease: 5, stable: 83 },
+    radarData: [
+      { subject: 'Connectivity', A: 85 },
+      { subject: 'Demographic', A: 65 },
+      { subject: 'Infrastructure', A: 90 },
+      { subject: 'Economy', A: 70 },
+      { subject: 'Environment', A: 40 },
+    ],
     drivers: [
       { label: 'Tenant Roll Risk', desc: 'lease expiry', value: 47, color: '#94a3b8' },
       { label: 'Debt Stress', desc: 'DSCR hit', value: 31, color: '#f97316' },
@@ -40,6 +67,15 @@ export const ASSETS_DATA = [
     id: 2, name: 'Munich Retail Boxpark', city: 'Munich', country: 'Germany',
     coordinates: [11.5820, 48.1351], score: 62.3, trend: '+8%', trendDir: 'up', status: 'ELEVATED',
     fund: 'MLT Beta', assetType: 'Retail', units: '89 Assets', confidence: 'MEDIUM', value: '$45.7M',
+    image: getBuildingImg(2),
+    predictions: { increase: 8, decrease: 15, stable: 77 },
+    radarData: [
+      { subject: 'Connectivity', A: 95 },
+      { subject: 'Demographic', A: 80 },
+      { subject: 'Infrastructure', A: 85 },
+      { subject: 'Economy', A: 60 },
+      { subject: 'Environment', A: 50 },
+    ],
     drivers: [
       { label: 'Occupancy Drop', desc: 'vacancy rate up', value: 52, color: '#f97316' },
       { label: 'Rent Rolldown', desc: 'below market', value: 30, color: '#eab308' },
@@ -51,6 +87,15 @@ export const ASSETS_DATA = [
     id: 3, name: 'Paris Innovation Campus', city: 'Paris', country: 'France',
     coordinates: [2.3522, 48.8566], score: 58.6, trend: '+4%', trendDir: 'up', status: 'ELEVATED',
     fund: 'MLT Alpha', assetType: 'Office', units: '450 Units', confidence: 'HIGH', value: '$112.3M',
+    image: getBuildingImg(3),
+    predictions: { increase: 15, decrease: 3, stable: 82 },
+    radarData: [
+      { subject: 'Connectivity', A: 90 },
+      { subject: 'Demographic', A: 88 },
+      { subject: 'Infrastructure', A: 92 },
+      { subject: 'Economy', A: 85 },
+      { subject: 'Environment', A: 75 },
+    ],
     drivers: [
       { label: 'Tech Sector Downturn', desc: 'tenant risk', value: 41, color: '#f97316' },
       { label: 'Lease Rollover', desc: '2024-2025', value: 35, color: '#eab308' },
@@ -62,6 +107,15 @@ export const ASSETS_DATA = [
     id: 4, name: 'London Central Hub', city: 'London', country: 'UK',
     coordinates: [-0.1276, 51.5074], score: 35.2, trend: '-2%', trendDir: 'down', status: 'SAFE',
     fund: 'MLT Gamma', assetType: 'Mixed Use', units: '320 Units', confidence: 'HIGH', value: '$203.1M',
+    image: getBuildingImg(4),
+    predictions: { increase: 20, decrease: 2, stable: 78 },
+    radarData: [
+      { subject: 'Connectivity', A: 98 },
+      { subject: 'Demographic', A: 95 },
+      { subject: 'Infrastructure', A: 96 },
+      { subject: 'Economy', A: 92 },
+      { subject: 'Environment', A: 88 },
+    ],
     drivers: [
       { label: 'Strong Occupancy', desc: '97% rate', value: 60, color: '#2ecc71' },
       { label: 'Lease Renewals', desc: 'secured 2026', value: 25, color: '#2ecc71' },
@@ -73,6 +127,15 @@ export const ASSETS_DATA = [
     id: 5, name: 'Amsterdam Office Tower', city: 'Amsterdam', country: 'Netherlands',
     coordinates: [4.9041, 52.3676], score: 44.1, trend: '+1%', trendDir: 'up', status: 'MODERATE',
     fund: 'MLT Beta', assetType: 'Office', units: '210 Units', confidence: 'MEDIUM', value: '$78.4M',
+    image: getBuildingImg(5),
+    predictions: { increase: 10, decrease: 10, stable: 80 },
+    radarData: [
+      { subject: 'Connectivity', A: 88 },
+      { subject: 'Demographic', A: 75 },
+      { subject: 'Infrastructure', A: 82 },
+      { subject: 'Economy', A: 78 },
+      { subject: 'Environment', A: 72 },
+    ],
     drivers: [
       { label: 'Interest Rate Exposure', desc: 'variable rate', value: 48, color: '#eab308' },
       { label: 'Tenant Concentration', desc: 'single-tenant 60%', value: 32, color: '#f97316' },
@@ -84,6 +147,15 @@ export const ASSETS_DATA = [
     id: 6, name: 'Berlin Logistics Hub', city: 'Berlin', country: 'Germany',
     coordinates: [13.4050, 52.5200], score: 29.8, trend: '-5%', trendDir: 'down', status: 'SAFE',
     fund: 'MLT Gamma', assetType: 'Industrial', units: '150 Units', confidence: 'HIGH', value: '$56.9M',
+    image: getBuildingImg(6),
+    predictions: { increase: 25, decrease: 1, stable: 74 },
+    radarData: [
+      { subject: 'Connectivity', A: 92 },
+      { subject: 'Demographic', A: 85 },
+      { subject: 'Infrastructure', A: 90 },
+      { subject: 'Economy', A: 88 },
+      { subject: 'Environment', A: 85 },
+    ],
     drivers: [
       { label: 'Long Term Leases', desc: '8yr avg', value: 55, color: '#2ecc71' },
       { label: 'E-Commerce Demand', desc: 'growing', value: 30, color: '#2ecc71' },
@@ -95,6 +167,15 @@ export const ASSETS_DATA = [
     id: 7, name: 'Madrid Business Park', city: 'Madrid', country: 'Spain',
     coordinates: [-3.7038, 40.4168], score: 52.4, trend: '+6%', trendDir: 'up', status: 'ELEVATED',
     fund: 'MLT Alpha', assetType: 'Office', units: '180 Units', confidence: 'MEDIUM', value: '$67.5M',
+    image: getBuildingImg(7),
+    predictions: { increase: 5, decrease: 20, stable: 75 },
+    radarData: [
+      { subject: 'Connectivity', A: 80 },
+      { subject: 'Demographic', A: 70 },
+      { subject: 'Infrastructure', A: 75 },
+      { subject: 'Economy', A: 65 },
+      { subject: 'Environment', A: 60 },
+    ],
     drivers: [
       { label: 'Macro Slowdown', desc: 'GDP risk', value: 39, color: '#f97316' },
       { label: 'Refinancing Risk', desc: '2025 maturity', value: 36, color: '#eab308' },
@@ -106,6 +187,15 @@ export const ASSETS_DATA = [
     id: 8, name: 'Milan Luxury Retail', city: 'Milan', country: 'Italy',
     coordinates: [9.1900, 45.4642], score: 38.7, trend: '+2%', trendDir: 'up', status: 'MODERATE',
     fund: 'MLT Beta', assetType: 'Retail', units: '95 Units', confidence: 'HIGH', value: '$145.2M',
+    image: getBuildingImg(8),
+    predictions: { increase: 15, decrease: 5, stable: 80 },
+    radarData: [
+      { subject: 'Connectivity', A: 96 },
+      { subject: 'Demographic', A: 94 },
+      { subject: 'Infrastructure', A: 92 },
+      { subject: 'Economy', A: 90 },
+      { subject: 'Environment', A: 85 },
+    ],
     drivers: [
       { label: 'Tourism Recovery', desc: 'post-COVID', value: 45, color: '#eab308' },
       { label: 'Luxury Brand Demand', desc: 'stable', value: 35, color: '#2ecc71' },
@@ -117,6 +207,15 @@ export const ASSETS_DATA = [
     id: 9, name: 'Stockholm Tech Center', city: 'Stockholm', country: 'Sweden',
     coordinates: [18.0686, 59.3293], score: 32.1, trend: '-1%', trendDir: 'down', status: 'SAFE',
     fund: 'MLT Gamma', assetType: 'Office', units: '140 Units', confidence: 'HIGH', value: '$88.5M',
+    image: getBuildingImg(9),
+    predictions: { increase: 18, decrease: 2, stable: 80 },
+    radarData: [
+      { subject: 'Connectivity', A: 94 },
+      { subject: 'Demographic', A: 90 },
+      { subject: 'Infrastructure', A: 95 },
+      { subject: 'Economy', A: 92 },
+      { subject: 'Environment', A: 98 },
+    ],
     drivers: [
       { label: 'Green Energy Focus', desc: 'ESG positive', value: 60, color: '#2ecc71' },
       { label: 'Stable Tenants', desc: 'Tech giants', value: 30, color: '#2ecc71' },
@@ -128,6 +227,15 @@ export const ASSETS_DATA = [
     id: 10, name: 'Warsaw Distribution', city: 'Warsaw', country: 'Poland',
     coordinates: [21.0122, 52.2297], score: 55.8, trend: '+4%', trendDir: 'up', status: 'ELEVATED',
     fund: 'MLT Beta', assetType: 'Industrial', units: '310 Units', confidence: 'MEDIUM', value: '$65.1M',
+    image: getBuildingImg(10),
+    predictions: { increase: 12, decrease: 8, stable: 80 },
+    radarData: [
+      { subject: 'Connectivity', A: 85 },
+      { subject: 'Demographic', A: 78 },
+      { subject: 'Infrastructure', A: 82 },
+      { subject: 'Economy', A: 75 },
+      { subject: 'Environment', A: 70 },
+    ],
     drivers: [
       { label: 'Supply Chain Shifts', desc: 'nearshoring', value: 45, color: '#eab308' },
       { label: 'Labor Shortage', desc: 'wage inflation', value: 35, color: '#f97316' },
@@ -139,6 +247,15 @@ export const ASSETS_DATA = [
     id: 11, name: 'Lisbon Waterfront', city: 'Lisbon', country: 'Portugal',
     coordinates: [-9.1393, 38.7223], score: 48.0, trend: '+1%', trendDir: 'up', status: 'MODERATE',
     fund: 'MLT Alpha', assetType: 'Mixed Use', units: '115 Units', confidence: 'MEDIUM', value: '$54.0M',
+    image: getBuildingImg(11),
+    predictions: { increase: 7, decrease: 13, stable: 80 },
+    radarData: [
+      { subject: 'Connectivity', A: 82 },
+      { subject: 'Demographic', A: 85 },
+      { subject: 'Infrastructure', A: 80 },
+      { subject: 'Economy', A: 75 },
+      { subject: 'Environment', A: 88 },
+    ],
     drivers: [
       { label: 'Foreign Investment', desc: 'Golden Visa end', value: 50, color: '#f97316' },
       { label: 'Tourism Boom', desc: 'retail boost', value: 30, color: '#2ecc71' },
@@ -150,6 +267,15 @@ export const ASSETS_DATA = [
     id: 12, name: 'Vienna Medical Plaza', city: 'Vienna', country: 'Austria',
     coordinates: [16.3738, 48.2082], score: 28.5, trend: '-3%', trendDir: 'down', status: 'SAFE',
     fund: 'MLT Gamma', assetType: 'Retail', units: '65 Units', confidence: 'HIGH', value: '$92.1M',
+    image: getBuildingImg(12),
+    predictions: { increase: 5, decrease: 5, stable: 90 },
+    radarData: [
+      { subject: 'Connectivity', A: 88 },
+      { subject: 'Demographic', A: 92 },
+      { subject: 'Infrastructure', A: 90 },
+      { subject: 'Economy', A: 85 },
+      { subject: 'Environment', A: 82 },
+    ],
     drivers: [
       { label: 'Gov Contracts', desc: 'guaranteed rent', value: 70, color: '#2ecc71' },
       { label: 'Low Competitors', desc: 'niche market', value: 20, color: '#2ecc71' },
