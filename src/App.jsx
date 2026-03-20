@@ -109,7 +109,7 @@ const App = () => {
                 onThemeChange={handleThemeChange}
                 focusAsset={focusAsset}
               />
-              <Footer assets={filteredAssets} />
+              <Footer assets={filteredAssets} filters={filters} />
             </main>
           </div>
         ) : (

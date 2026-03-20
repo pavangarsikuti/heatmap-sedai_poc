@@ -7,7 +7,6 @@ const COUNTRIES = ['All', ...Array.from(new Set(ASSETS_DATA.map(a => a.country))
 const ControlBar = ({ filters, onFilterChange }) => {
   const filterDefs = [
     { key: 'riskType', label: 'Risk Type', options: ['All Risks', 'Market', 'Political', 'Climate', 'Financial', 'Social', 'Other'] },
-    { key: 'timeframe', label: 'Timeframe', options: ['3 Months', '6 Months', '12 Months'] },
     { key: 'status', label: 'Risk Level', options: STATUSES },
     { key: 'percentage', label: 'Percentage', options: ['All', '0-25', '25-50', '50-75', '75-100'] },
     { key: 'assetType', label: 'Asset Types', options: ASSET_TYPES },
@@ -17,6 +16,12 @@ const ControlBar = ({ filters, onFilterChange }) => {
   const activeFilters = Object.entries(filters).filter(
     ([k, v]) => !['riskType', 'timeframe', 'viewMode'].includes(k) && v !== 'All'
   ).length;
+
+  const TIMEFRAME_OPTIONS = [
+    { value: '3 Months', label: '3M' },
+    { value: '6 Months', label: '6M' },
+    { value: '12 Months', label: '12M' },
+  ];
 
   return (
     <div style={{
@@ -53,6 +58,49 @@ const ControlBar = ({ filters, onFilterChange }) => {
               {m.toUpperCase()}
             </button>
           ))}
+        </div>
+
+        <div style={{ height: 16, width: 1, background: 'rgba(255,255,255,0.1)' }} />
+
+        {/* Timeframe Segmented Toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>Period:</span>
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: 2,
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}>
+            {TIMEFRAME_OPTIONS.map(tf => {
+              const isActive = filters.timeframe === tf.value;
+              return (
+                <button
+                  key={tf.value}
+                  onClick={() => onFilterChange('timeframe', tf.value)}
+                  style={{
+                    padding: '4px 12px',
+                    fontSize: 10,
+                    fontWeight: 800,
+                    borderRadius: 4,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: isActive ? 'rgba(59,130,246,0.2)' : 'transparent',
+                    color: isActive ? '#3b82f6' : '#475569',
+                    transition: 'all 0.2s',
+                    letterSpacing: '0.05em',
+                    position: 'relative',
+                  }}
+                >
+                  {tf.label}
+                  {isActive && (
+                    <div style={{
+                      position: 'absolute', bottom: -1, left: '25%', width: '50%', height: 2,
+                      background: '#3b82f6', borderRadius: 2,
+                    }} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div style={{ height: 16, width: 1, background: 'rgba(255,255,255,0.1)' }} />

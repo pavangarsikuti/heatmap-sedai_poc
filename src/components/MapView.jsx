@@ -173,7 +173,7 @@ const MapTooltip = ({ asset, pos, onClose, pinned }) => {
         {/* Building Image */}
         {asset.image && (
           <div style={{ height: 160, width: '100%', overflow: 'hidden', position: 'relative' }}>
-            <img src={asset.image} alt={asset.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={asset.image} alt={asset.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(7,8,17,0.9), transparent)' }} />
             {pinned && (
               <button
@@ -183,10 +183,30 @@ const MapTooltip = ({ asset, pos, onClose, pinned }) => {
                 <X size={14} />
               </button>
             )}
-            <div style={{ position: 'absolute', bottom: 12, left: 16 }}>
+            <div style={{ position: 'absolute', bottom: 12, left: 16, display: 'flex', gap: 6, alignItems: 'center' }}>
                <div style={{ fontSize: 9, fontWeight: 800, color: '#3b82f6', background: 'rgba(59,130,246,0.15)', padding: '2px 8px', borderRadius: 4, border: '1px solid rgba(59,130,246,0.3)', backdropFilter: 'blur(8px)' }}>
                 SATELLITE VIEW
               </div>
+              {asset.googleMapsUrl && (
+                <a
+                  href={asset.googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  style={{
+                    fontSize: 9, fontWeight: 800, color: '#2ecc71',
+                    background: 'rgba(46,204,113,0.15)', padding: '2px 8px', borderRadius: 4,
+                    border: '1px solid rgba(46,204,113,0.3)', backdropFilter: 'blur(8px)',
+                    textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4,
+                    transition: 'all 0.2s',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(46,204,113,0.3)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(46,204,113,0.15)'; }}
+                >
+                  📍 VIEW ON MAPS
+                </a>
+              )}
             </div>
           </div>
         )}
@@ -264,6 +284,23 @@ const ClusterTooltip = ({ cluster, pos, assets }) => {
 };
 
 // ── Main MapView ───────────────────────────────────────────────────────────────
+const GEOJSON_URL = 'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson';
+
+// Map asset country names to GeoJSON feature ADMIN names
+const COUNTRY_NAME_MAP = {
+  'UK': 'United Kingdom',
+  'Switzerland': 'Switzerland',
+  'Germany': 'Germany',
+  'France': 'France',
+  'Netherlands': 'Netherlands',
+  'Spain': 'Spain',
+  'Italy': 'Italy',
+  'Sweden': 'Sweden',
+  'Poland': 'Poland',
+  'Portugal': 'Portugal',
+  'Austria': 'Austria',
+};
+
 const MapView = ({ filteredAssets, viewMode, isSidebarOpen, onToggleSidebar, theme, onThemeChange, focusAsset }) => {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
@@ -271,10 +308,12 @@ const MapView = ({ filteredAssets, viewMode, isSidebarOpen, onToggleSidebar, the
   const renderMarkersRef = useRef(null);
   const filteredAssetsRef = useRef(filteredAssets);
   const is3DRef = useRef(false);
+  const geoJsonRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
   const [pinnedAssetId, setPinnedAssetId] = useState(null);
   const [pinnedPos, setPinnedPos] = useState({ x: 0, y: 0 });
   const [clusterTooltip, setClusterTooltip] = useState(null);
+  const [regionTooltip, setRegionTooltip] = useState(null);
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
   const [is3D, setIs3D] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(3.5);
@@ -331,64 +370,147 @@ const MapView = ({ filteredAssets, viewMode, isSidebarOpen, onToggleSidebar, the
     setCurrentZoom(zoom);
 
     if (viewMode === 'Regions') {
-      // ── Region Mode ──
-      const countries = Array.from(new Set(assets.map(a => a.country)));
-      countries.forEach(country => {
-        const countryAssets = assets.filter(a => a.country === country);
-        const count = countryAssets.length;
-        
-        // Calculate average coordinates for the country marker
-        const avgLng = countryAssets.reduce((sum, a) => sum + a.coordinates[0], 0) / count;
-        const avgLat = countryAssets.reduce((sum, a) => sum + a.coordinates[1], 0) / count;
-        
-        // Get highest severity for color
-        const statuses = ['CRITICAL', 'ELEVATED', 'MODERATE', 'SAFE'];
-        let color = STATUS_CONFIG.SAFE.color;
-        for (const s of statuses) {
-          if (countryAssets.some(a => a.status === s)) {
-            color = STATUS_CONFIG[s].color;
-            break;
+      // ── Region Heatmap Mode ──
+      // Calculate per-country risk aggregates
+      const countryRiskMap = {};
+      assets.forEach(a => {
+        const geoName = COUNTRY_NAME_MAP[a.country] || a.country;
+        if (!countryRiskMap[geoName]) {
+          countryRiskMap[geoName] = { scores: [], count: 0, statuses: [], coords: [], assetCountry: a.country };
+        }
+        countryRiskMap[geoName].scores.push(a.score);
+        countryRiskMap[geoName].count++;
+        countryRiskMap[geoName].statuses.push(a.status);
+        countryRiskMap[geoName].coords.push(a.coordinates);
+      });
+
+      // Build country fill colors
+      const countryColors = {};
+      Object.entries(countryRiskMap).forEach(([name, data]) => {
+        const avg = data.scores.reduce((s, v) => s + v, 0) / data.scores.length;
+        if (avg >= 55) countryColors[name] = 'rgba(255, 77, 77, 0.35)';      // Red
+        else if (avg >= 35) countryColors[name] = 'rgba(255, 205, 60, 0.30)'; // Yellow
+        else countryColors[name] = 'rgba(46, 204, 113, 0.25)';               // Green
+      });
+
+      // Add/update GeoJSON fill layer
+      const addOrUpdateRegionLayer = (geojson) => {
+        // Filter to only European countries that have assets
+        const assetCountryNames = Object.keys(countryRiskMap);
+        const filteredFeatures = geojson.features.filter(f => {
+          const name = f.properties.ADMIN || f.properties.name;
+          return assetCountryNames.includes(name);
+        });
+
+        // Add color property to each feature
+        filteredFeatures.forEach(f => {
+          const name = f.properties.ADMIN || f.properties.name;
+          f.properties._riskColor = countryColors[name] || 'rgba(255,255,255,0)';
+          const data = countryRiskMap[name];
+          if (data) {
+            f.properties._avgScore = Math.round(data.scores.reduce((s, v) => s + v, 0) / data.scores.length * 10) / 10;
+            f.properties._count = data.count;
+            f.properties._assetCountry = data.assetCountry;
           }
+        });
+
+        const filteredGeoJson = { type: 'FeatureCollection', features: filteredFeatures };
+
+        if (map.getSource('region-risk')) {
+          map.getSource('region-risk').setData(filteredGeoJson);
+        } else {
+          map.addSource('region-risk', { type: 'geojson', data: filteredGeoJson });
+          map.addLayer({
+            id: 'region-risk-fill',
+            type: 'fill',
+            source: 'region-risk',
+            paint: {
+              'fill-color': ['get', '_riskColor'],
+              'fill-opacity': 1,
+            },
+          });
+          map.addLayer({
+            id: 'region-risk-outline',
+            type: 'line',
+            source: 'region-risk',
+            paint: {
+              'line-color': 'rgba(255,255,255,0.2)',
+              'line-width': 1.5,
+            },
+          });
         }
 
-        const el = document.createElement('div');
-        el.style.cssText = 'width:0; height:0; display:flex; align-items:center; justify-content:center; position:relative; cursor:pointer;';
-        
-        const size = Math.min(40 + count * 8, 80);
-        el.innerHTML = `
-          <div style="
-            width:${size}px; height:${size}px; border-radius:50%;
-            background:${color}15; border:1px solid ${color}44;
-            display:flex; flex-direction:column; align-items:center; justify-content:center;
-            position:absolute; backdrop-filter:blur(4px);
-            box-shadow: 0 0 30px ${color}15, inset 0 0 20px ${color}10;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          " class="region-marker">
-            <div style="font-size:9px; font-weight:800; color:${color}; margin-bottom:2px; letter-spacing:0.05em;">${country.toUpperCase()}</div>
-            <div style="font-size:16px; font-weight:800; color:#fff;">${count}</div>
-            <div style="font-size:7px; font-weight:700; color:#475569; margin-top:2px;">ASSETS</div>
-          </div>`;
+        // Make layers visible
+        map.setLayoutProperty('region-risk-fill', 'visibility', 'visible');
+        map.setLayoutProperty('region-risk-outline', 'visibility', 'visible');
 
-        el.addEventListener('mouseenter', () => {
-          el.querySelector('.region-marker').style.transform = 'scale(1.1)';
-          el.querySelector('.region-marker').style.background = `${color}25`;
-          el.querySelector('.region-marker').style.boxShadow = `0 0 50px ${color}30, inset 0 0 30px ${color}20`;
-        });
-        el.addEventListener('mouseleave', () => {
-          el.querySelector('.region-marker').style.transform = 'scale(1)';
-          el.querySelector('.region-marker').style.background = `${color}15`;
-          el.querySelector('.region-marker').style.boxShadow = `0 0 30px ${color}15, inset 0 0 20px ${color}10`;
-        });
-        el.addEventListener('click', () => {
-          map.flyTo({ center: [avgLng, avgLat], zoom: 6, duration: 1500 });
-        });
+        // Add labels for each country with assets
+        Object.entries(countryRiskMap).forEach(([geoName, data]) => {
+          const avgLng = data.coords.reduce((s, c) => s + c[0], 0) / data.coords.length;
+          const avgLat = data.coords.reduce((s, c) => s + c[1], 0) / data.coords.length;
+          const avg = Math.round(data.scores.reduce((s, v) => s + v, 0) / data.scores.length * 10) / 10;
+          const color = avg >= 55 ? '#ff4d4d' : avg >= 35 ? '#ffcd3c' : '#2ecc71';
 
-        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
-          .setLngLat([avgLng, avgLat])
-          .addTo(map);
-        markersRef.current.push(marker);
-      });
+          const el = document.createElement('div');
+          el.style.cssText = 'width:0; height:0; display:flex; align-items:center; justify-content:center; position:relative; cursor:pointer;';
+          el.innerHTML = `
+            <div style="
+              position:absolute; padding:8px 14px; border-radius:8px;
+              background:rgba(7,8,17,0.88); backdrop-filter:blur(12px);
+              border:1px solid ${color}44;
+              box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 20px ${color}15;
+              display:flex; flex-direction:column; align-items:center; gap:4px;
+              transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+              pointer-events:auto;
+            " class="region-label">
+              <div style="font-size:8px; font-weight:800; color:${color}; letter-spacing:0.1em;">${data.assetCountry.toUpperCase()}</div>
+              <div style="display:flex; align-items:baseline; gap:6px;">
+                <span style="font-size:18px; font-weight:900; color:${color};">${avg}</span>
+                <span style="font-size:9px; font-weight:700; color:#475569;">${data.count} asset${data.count > 1 ? 's' : ''}</span>
+              </div>
+            </div>`;
+
+          el.addEventListener('mouseenter', (e) => {
+            el.querySelector('.region-label').style.transform = 'scale(1.05)';
+            el.querySelector('.region-label').style.boxShadow = `0 8px 32px rgba(0,0,0,0.6), 0 0 30px ${color}25`;
+            setRegionTooltip({ name: data.assetCountry, count: data.count, avg, color });
+            setHoverPos({ x: e.clientX, y: e.clientY });
+          });
+          el.addEventListener('mouseleave', () => {
+            el.querySelector('.region-label').style.transform = 'scale(1)';
+            el.querySelector('.region-label').style.boxShadow = `0 4px 24px rgba(0,0,0,0.5), 0 0 20px ${color}15`;
+            setRegionTooltip(null);
+          });
+          el.addEventListener('click', () => {
+            map.flyTo({ center: [avgLng, avgLat], zoom: 6, duration: 1500 });
+          });
+
+          const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+            .setLngLat([avgLng, avgLat])
+            .addTo(map);
+          markersRef.current.push(marker);
+        });
+      };
+
+      // Fetch GeoJSON (cached)
+      if (geoJsonRef.current) {
+        addOrUpdateRegionLayer(geoJsonRef.current);
+      } else {
+        fetch(GEOJSON_URL)
+          .then(r => r.json())
+          .then(data => {
+            geoJsonRef.current = data;
+            addOrUpdateRegionLayer(data);
+          })
+          .catch(err => console.error('Failed to load GeoJSON:', err));
+      }
       return;
+    }
+
+    // Hide region layers if in Assets mode
+    if (map.getLayer('region-risk-fill')) {
+      map.setLayoutProperty('region-risk-fill', 'visibility', 'none');
+      map.setLayoutProperty('region-risk-outline', 'visibility', 'none');
     }
 
     // ── Assets Mode (Clustered) ──
@@ -681,6 +803,39 @@ const MapView = ({ filteredAssets, viewMode, isSidebarOpen, onToggleSidebar, the
         pinned={!!pinnedAssetId}
       />
       <ClusterTooltip cluster={clusterTooltip} pos={hoverPos} assets={filteredAssets} />
+
+      {/* Region Tooltip */}
+      {regionTooltip && (
+        <div style={{
+          position: 'fixed',
+          left: Math.min(regionTooltip ? hoverPos.x + 20 : 0, window.innerWidth - 200),
+          top: Math.max(hoverPos.y - 80, 8),
+          zIndex: 9999,
+          width: 180,
+          background: 'rgba(7,8,17,0.97)',
+          backdropFilter: 'blur(20px)',
+          border: `1px solid ${regionTooltip.color}44`,
+          borderRadius: 8,
+          padding: '10px 14px',
+          boxShadow: `0 24px 60px rgba(0,0,0,0.8), 0 0 20px ${regionTooltip.color}15`,
+          animation: 'fadeIn .15s ease',
+          pointerEvents: 'none',
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: regionTooltip.color, marginBottom: 4, letterSpacing: '0.08em' }}>
+            {regionTooltip.name}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 9, color: '#475569', fontWeight: 600 }}>Avg Risk Score</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: regionTooltip.color }}>{regionTooltip.avg}</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 9, color: '#475569', fontWeight: 600 }}>Assets</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#f1f5f9' }}>{regionTooltip.count}</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Top-right controls */}
       <div style={{ position: 'absolute', top: 14, right: 14, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>

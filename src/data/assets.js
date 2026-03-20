@@ -42,12 +42,14 @@ const IMG_IDS = [
 
 const getBuildingImg = (id) => `https://images.unsplash.com/photo-${IMG_IDS[(id - 1) % IMG_IDS.length]}?auto=format&fit=crop&q=80&w=600&h=400`;
 
+const getGoogleMapsUrl = (coords) => `https://www.google.com/maps/@${coords[1]},${coords[0]},17z`;
+
 export const ASSETS_DATA = [
   {
     id: 1, name: 'Zurich Industrial Complex', city: 'Zurich', country: 'Switzerland',
     coordinates: [8.5417, 47.3769], score: 71.9, trend: '+5%', trendDir: 'up', status: 'CRITICAL',
     fund: 'MLT Alpha', assetType: 'Industrial', units: '234 TEU', confidence: 'HIGH', value: '$89.2M',
-    image: getBuildingImg(1),
+    image: getBuildingImg(1), googleMapsUrl: getGoogleMapsUrl([8.5417, 47.3769]),
     predictions: { increase: 12, decrease: 5, stable: 83 },
     radarData: [
       { subject: 'Connectivity', A: 85 },
@@ -67,7 +69,7 @@ export const ASSETS_DATA = [
     id: 2, name: 'Munich Retail Boxpark', city: 'Munich', country: 'Germany',
     coordinates: [11.5820, 48.1351], score: 62.3, trend: '+8%', trendDir: 'up', status: 'ELEVATED',
     fund: 'MLT Beta', assetType: 'Retail', units: '89 Assets', confidence: 'MEDIUM', value: '$45.7M',
-    image: getBuildingImg(2),
+    image: getBuildingImg(2), googleMapsUrl: getGoogleMapsUrl([11.5820, 48.1351]),
     predictions: { increase: 8, decrease: 15, stable: 77 },
     radarData: [
       { subject: 'Connectivity', A: 95 },
@@ -87,7 +89,7 @@ export const ASSETS_DATA = [
     id: 3, name: 'Paris Innovation Campus', city: 'Paris', country: 'France',
     coordinates: [2.3522, 48.8566], score: 58.6, trend: '+4%', trendDir: 'up', status: 'ELEVATED',
     fund: 'MLT Alpha', assetType: 'Office', units: '450 Units', confidence: 'HIGH', value: '$112.3M',
-    image: getBuildingImg(3),
+    image: getBuildingImg(3), googleMapsUrl: getGoogleMapsUrl([2.3522, 48.8566]),
     predictions: { increase: 15, decrease: 3, stable: 82 },
     radarData: [
       { subject: 'Connectivity', A: 90 },
@@ -107,7 +109,7 @@ export const ASSETS_DATA = [
     id: 4, name: 'London Central Hub', city: 'London', country: 'UK',
     coordinates: [-0.1276, 51.5074], score: 35.2, trend: '-2%', trendDir: 'down', status: 'SAFE',
     fund: 'MLT Gamma', assetType: 'Mixed Use', units: '320 Units', confidence: 'HIGH', value: '$203.1M',
-    image: getBuildingImg(4),
+    image: getBuildingImg(4), googleMapsUrl: getGoogleMapsUrl([-0.1276, 51.5074]),
     predictions: { increase: 20, decrease: 2, stable: 78 },
     radarData: [
       { subject: 'Connectivity', A: 98 },
@@ -127,7 +129,7 @@ export const ASSETS_DATA = [
     id: 5, name: 'Amsterdam Office Tower', city: 'Amsterdam', country: 'Netherlands',
     coordinates: [4.9041, 52.3676], score: 44.1, trend: '+1%', trendDir: 'up', status: 'MODERATE',
     fund: 'MLT Beta', assetType: 'Office', units: '210 Units', confidence: 'MEDIUM', value: '$78.4M',
-    image: getBuildingImg(5),
+    image: getBuildingImg(5), googleMapsUrl: getGoogleMapsUrl([4.9041, 52.3676]),
     predictions: { increase: 10, decrease: 10, stable: 80 },
     radarData: [
       { subject: 'Connectivity', A: 88 },
@@ -147,7 +149,7 @@ export const ASSETS_DATA = [
     id: 6, name: 'Berlin Logistics Hub', city: 'Berlin', country: 'Germany',
     coordinates: [13.4050, 52.5200], score: 29.8, trend: '-5%', trendDir: 'down', status: 'SAFE',
     fund: 'MLT Gamma', assetType: 'Industrial', units: '150 Units', confidence: 'HIGH', value: '$56.9M',
-    image: getBuildingImg(6),
+    image: getBuildingImg(6), googleMapsUrl: getGoogleMapsUrl([13.4050, 52.5200]),
     predictions: { increase: 25, decrease: 1, stable: 74 },
     radarData: [
       { subject: 'Connectivity', A: 92 },
@@ -167,7 +169,7 @@ export const ASSETS_DATA = [
     id: 7, name: 'Madrid Business Park', city: 'Madrid', country: 'Spain',
     coordinates: [-3.7038, 40.4168], score: 52.4, trend: '+6%', trendDir: 'up', status: 'ELEVATED',
     fund: 'MLT Alpha', assetType: 'Office', units: '180 Units', confidence: 'MEDIUM', value: '$67.5M',
-    image: getBuildingImg(7),
+    image: getBuildingImg(7), googleMapsUrl: getGoogleMapsUrl([-3.7038, 40.4168]),
     predictions: { increase: 5, decrease: 20, stable: 75 },
     radarData: [
       { subject: 'Connectivity', A: 80 },
@@ -187,7 +189,7 @@ export const ASSETS_DATA = [
     id: 8, name: 'Milan Luxury Retail', city: 'Milan', country: 'Italy',
     coordinates: [9.1900, 45.4642], score: 38.7, trend: '+2%', trendDir: 'up', status: 'MODERATE',
     fund: 'MLT Beta', assetType: 'Retail', units: '95 Units', confidence: 'HIGH', value: '$145.2M',
-    image: getBuildingImg(8),
+    image: getBuildingImg(8), googleMapsUrl: getGoogleMapsUrl([9.1900, 45.4642]),
     predictions: { increase: 15, decrease: 5, stable: 80 },
     radarData: [
       { subject: 'Connectivity', A: 96 },
@@ -207,7 +209,7 @@ export const ASSETS_DATA = [
     id: 9, name: 'Stockholm Tech Center', city: 'Stockholm', country: 'Sweden',
     coordinates: [18.0686, 59.3293], score: 32.1, trend: '-1%', trendDir: 'down', status: 'SAFE',
     fund: 'MLT Gamma', assetType: 'Office', units: '140 Units', confidence: 'HIGH', value: '$88.5M',
-    image: getBuildingImg(9),
+    image: getBuildingImg(9), googleMapsUrl: getGoogleMapsUrl([18.0686, 59.3293]),
     predictions: { increase: 18, decrease: 2, stable: 80 },
     radarData: [
       { subject: 'Connectivity', A: 94 },
@@ -227,7 +229,7 @@ export const ASSETS_DATA = [
     id: 10, name: 'Warsaw Distribution', city: 'Warsaw', country: 'Poland',
     coordinates: [21.0122, 52.2297], score: 55.8, trend: '+4%', trendDir: 'up', status: 'ELEVATED',
     fund: 'MLT Beta', assetType: 'Industrial', units: '310 Units', confidence: 'MEDIUM', value: '$65.1M',
-    image: getBuildingImg(10),
+    image: getBuildingImg(10), googleMapsUrl: getGoogleMapsUrl([21.0122, 52.2297]),
     predictions: { increase: 12, decrease: 8, stable: 80 },
     radarData: [
       { subject: 'Connectivity', A: 85 },
@@ -247,7 +249,7 @@ export const ASSETS_DATA = [
     id: 11, name: 'Lisbon Waterfront', city: 'Lisbon', country: 'Portugal',
     coordinates: [-9.1393, 38.7223], score: 48.0, trend: '+1%', trendDir: 'up', status: 'MODERATE',
     fund: 'MLT Alpha', assetType: 'Mixed Use', units: '115 Units', confidence: 'MEDIUM', value: '$54.0M',
-    image: getBuildingImg(11),
+    image: getBuildingImg(11), googleMapsUrl: getGoogleMapsUrl([-9.1393, 38.7223]),
     predictions: { increase: 7, decrease: 13, stable: 80 },
     radarData: [
       { subject: 'Connectivity', A: 82 },
@@ -267,7 +269,7 @@ export const ASSETS_DATA = [
     id: 12, name: 'Vienna Medical Plaza', city: 'Vienna', country: 'Austria',
     coordinates: [16.3738, 48.2082], score: 28.5, trend: '-3%', trendDir: 'down', status: 'SAFE',
     fund: 'MLT Gamma', assetType: 'Retail', units: '65 Units', confidence: 'HIGH', value: '$92.1M',
-    image: getBuildingImg(12),
+    image: getBuildingImg(12), googleMapsUrl: getGoogleMapsUrl([16.3738, 48.2082]),
     predictions: { increase: 5, decrease: 5, stable: 90 },
     radarData: [
       { subject: 'Connectivity', A: 88 },
