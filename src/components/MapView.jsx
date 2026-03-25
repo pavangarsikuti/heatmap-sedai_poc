@@ -630,7 +630,7 @@ const MapView = ({
   const [pinnedAssetId, setPinnedAssetId] = useState(null);
   const [pinnedPos, setPinnedPos] = useState({ x: 0, y: 0 });
   const [clusterTooltip, setClusterTooltip] = useState(null);
-  const [regionTooltip, setRegionTooltip] = useState(null);
+  const [regionTooltip, setRegionTooltip] = useState(null); // Keep for future use or remove if absolutely sure
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
   const [is3D, setIs3D] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(3.5);
@@ -673,56 +673,78 @@ const MapView = ({
     setLocationDetail({ lat, lng, loading: true, name: 'Loading...', address: 'Fetching address...' });
     
     try {
-      // Step 1: Reverse Geocoding (via Proxy)
-      const geoResp = await fetch(`/google-api/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_MAPS_API_KEY}`);
-      if (!geoResp.ok) throw new Error(`Geocoding proxy failed: ${geoResp.status}`);
-      const geoData = await geoResp.json();
-      
-      let address = "No address found";
-      let placeId = null;
-      let types = [];
-      
-      if (geoData.results && geoData.results.length > 0) {
-        address = geoData.results[0].formatted_address;
-        placeId = geoData.results[0].place_id;
-        types = geoData.results[0].types;
+      if (!window.google || !window.google.maps) {
+        throw new Error("Google Maps SDK not loaded");
       }
 
+      // Initialize Geocoder and PlacesService (using a dummy div)
+      const geocoder = new window.google.maps.Geocoder();
+      const dummyDiv = document.createElement('div');
+      const placesService = new window.google.maps.places.PlacesService(dummyDiv);
+
+      // Step 1: Reverse Geocoding
+      const geoData = await new Promise((resolve, reject) => {
+        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+          if (status === 'OK' && results[0]) resolve(results[0]);
+          else reject(new Error(`Geocoding failed: ${status}`));
+        });
+      });
+
+      let address = geoData.formatted_address || "No address found";
+      let placeId = geoData.place_id;
+      let types = geoData.types || [];
+      
       let name = "Point of Interest";
       let photoUrl = null;
       let category = types[0] || 'Location';
       let moreData = {};
 
       if (placeId) {
-        // Step 2: Place Details (via Proxy)
-        // Requesting ALL possible fields for "complete details"
-        const fields = 'name,formatted_address,type,photos,rating,user_ratings_total,opening_hours,website,formatted_phone_number,url,business_status,price_level,reviews,vicinity,plus_code';
-        const detailResp = await fetch(`/google-api/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&key=${GOOGLE_MAPS_API_KEY}`);
-        if (!detailResp.ok) throw new Error(`Place Details proxy failed: ${detailResp.status}`);
-        const detailData = await detailResp.json();
+        // Step 2: Place Details
+        const fields = [
+          'name', 'formatted_address', 'types', 'photos', 'rating', 
+          'user_ratings_total', 'opening_hours', 'website', 
+          'formatted_phone_number', 'url', 'business_status', 
+          'price_level', 'reviews', 'vicinity', 'plus_code'
+        ];
         
-        if (detailData.result) {
-          const res = detailData.result;
-          name = res.name;
-          category = res.types?.[0] || category;
+        const detailResult = await new Promise((resolve, reject) => {
+          placesService.getDetails({ placeId, fields }, (result, status) => {
+            if (status === 'OK' && result) resolve(result);
+            else reject(new Error(`Place Details failed: ${status}`));
+          });
+        });
+        
+        if (detailResult) {
+          name = detailResult.name || name;
+          category = detailResult.types?.[0] || category;
           
-          if (res.photos && res.photos.length > 0) {
-            const photoRef = res.photos[0].photo_reference;
-            photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoRef}&key=${GOOGLE_MAPS_API_KEY}`;
+          if (detailResult.photos && detailResult.photos.length > 0) {
+            // Get URL from the photo object
+            photoUrl = detailResult.photos[0].getUrl({ maxWidth: 800 });
           }
 
+          // Map SDK data to the format used in UI
           moreData = {
-            rating: res.rating,
-            user_ratings_total: res.user_ratings_total,
-            opening_hours: res.opening_hours,
-            website: res.website,
-            formatted_phone_number: res.formatted_phone_number,
-            url: res.url,
-            business_status: res.business_status,
-            price_level: res.price_level,
-            reviews: res.reviews,
-            vicinity: res.vicinity,
-            plus_code: res.plus_code
+            rating: detailResult.rating,
+            user_ratings_total: detailResult.user_ratings_total,
+            opening_hours: detailResult.opening_hours ? {
+              open_now: typeof detailResult.opening_hours.isOpen === 'function' ? detailResult.opening_hours.isOpen() : undefined,
+              weekday_text: detailResult.opening_hours.weekday_text
+            } : undefined,
+            website: detailResult.website,
+            formatted_phone_number: detailResult.formatted_phone_number,
+            url: detailResult.url,
+            business_status: detailResult.business_status,
+            price_level: detailResult.price_level,
+            reviews: detailResult.reviews?.map(r => ({
+              author_name: r.author_name,
+              rating: r.rating,
+              text: r.text,
+              relative_time_description: r.relative_time_description
+            })),
+            vicinity: detailResult.vicinity,
+            plus_code: detailResult.plus_code
           };
         }
       }
@@ -758,8 +780,8 @@ const MapView = ({
     if (now - lastClickRef.current < 200) return;
     lastClickRef.current = now;
 
-    // Check if we clicked on a city/region mode layer or if tooltip is open
-    if (viewMode === 'Regions') return;
+    // Check if tooltip is open (don't re-fetch if we're just clicking around the same area rapidly)
+    // Removed viewMode === 'Regions' check to allow clicking in all modes
 
     const { lng, lat } = e.lngLat;
     
@@ -780,7 +802,12 @@ const MapView = ({
       .addTo(map);
 
     fetchLocationDetails(lng, lat);
-  }, [viewMode]);
+  }, [viewMode, fetchLocationDetails]);
+
+  const handleMapClickRef = useRef(handleMapClick);
+  useEffect(() => {
+    handleMapClickRef.current = handleMapClick;
+  }, [handleMapClick]);
 
   // Keep refs updated for listeners
   useEffect(() => {
@@ -907,13 +934,14 @@ const MapView = ({
           el.addEventListener('mouseenter', (e) => {
             el.querySelector('.region-label').style.transform = 'scale(1.05)';
             el.querySelector('.region-label').style.boxShadow = `0 8px 32px rgba(0,0,0,0.6), 0 0 30px ${color}25`;
-            setRegionTooltip({ name: data.assetCountry, count: data.count, avg, color });
-            setHoverPos({ x: e.clientX, y: e.clientY });
+            // Redundant tooltip removed as per user feedback
+            // setRegionTooltip({ name: data.assetCountry, count: data.count, avg, color });
+            // setHoverPos({ x: e.clientX, y: e.clientY });
           });
           el.addEventListener('mouseleave', () => {
             el.querySelector('.region-label').style.transform = 'scale(1)';
             el.querySelector('.region-label').style.boxShadow = `0 4px 24px rgba(0,0,0,0.5), 0 0 20px ${color}15`;
-            setRegionTooltip(null);
+            // setRegionTooltip(null);
           });
           el.addEventListener('click', () => {
             map.flyTo({ center: [avgLng, avgLat], zoom: 6, duration: 1500 });
@@ -1116,7 +1144,7 @@ const MapView = ({
       attributionControl: false,
     });
 
-    map.on('click', handleMapClick);
+    map.on('click', (e) => handleMapClickRef.current(e));
 
     mapRef.current = map;
 
@@ -1250,7 +1278,7 @@ const MapView = ({
       />
 
       {/* Region Tooltip */}
-      {regionTooltip && (
+      {/* {regionTooltip && (
         <div style={{
           position: 'fixed',
           left: Math.min(regionTooltip ? hoverPos.x + 20 : 0, window.innerWidth - 200),
@@ -1280,7 +1308,7 @@ const MapView = ({
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Top-right controls */}
       <div style={{ position: 'absolute', top: 14, right: 14, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
