@@ -24,6 +24,18 @@ const adjustRisks = (risks) => {
   return risks;
 };
 
+export const calculateRentalScore = (occupancy, growth, stability) => {
+  // Rental Score = composite metric combining occupancy, rent growth, and tenant stability
+  return Math.round((occupancy * 0.4 + growth * 0.3 + stability * 0.3));
+};
+
+const generateHistory = (base) => {
+  return Array.from({ length: 12 }, (_, i) => {
+    const noise = Math.random() * 4 - 2;
+    return Math.round((base + noise) * 10) / 10;
+  });
+};
+
 // Specific premium architectural photo IDs from Unsplash
 const IMG_IDS = [
   '1486406146926-c627a92ad1ab', // Modern office
@@ -59,10 +71,12 @@ export const ASSETS_DATA = [
       { subject: 'Environment', A: 40 },
     ],
     drivers: [
-      { label: 'Tenant Roll Risk', desc: 'lease expiry', value: 47, color: '#94a3b8' },
-      { label: 'Debt Stress', desc: 'DSCR hit', value: 31, color: '#f97316' },
-      { label: 'Net Operational Income Down', desc: '', value: 22, color: '#eab308' },
+      { label: 'Tenant Roll Risk', desc: 'lease expiry', value: 47, color: '#94a3b8', weight: 0.5 },
+      { label: 'Debt Stress', desc: 'DSCR hit', value: 31, color: '#f97316', weight: 0.3 },
+      { label: 'Net Operational Income Down', desc: '', value: 22, color: '#eab308', weight: 0.2 },
     ],
+    history: generateHistory(71.9),
+    prevQuarterScore: 75.2,
     risks: adjustRisks(generateRisks(71.9, 'CRITICAL', '+5%', 'up'))
   },
   {
@@ -79,10 +93,12 @@ export const ASSETS_DATA = [
       { subject: 'Environment', A: 50 },
     ],
     drivers: [
-      { label: 'Occupancy Drop', desc: 'vacancy rate up', value: 52, color: '#f97316' },
-      { label: 'Rent Rolldown', desc: 'below market', value: 30, color: '#eab308' },
-      { label: 'Maintenance Backlog', desc: 'deferred capex', value: 18, color: '#94a3b8' },
+      { label: 'Occupancy Drop', desc: 'vacancy rate up', value: 52, color: '#f97316', weight: 0.6 },
+      { label: 'Rent Rolldown', desc: 'below market', value: 30, color: '#eab308', weight: 0.25 },
+      { label: 'Maintenance Backlog', desc: 'deferred capex', value: 18, color: '#94a3b8', weight: 0.15 },
     ],
+    history: generateHistory(62.3),
+    prevQuarterScore: 58.1,
     risks: adjustRisks(generateRisks(62.3, 'ELEVATED', '+8%', 'up'))
   },
   {
@@ -99,10 +115,12 @@ export const ASSETS_DATA = [
       { subject: 'Environment', A: 75 },
     ],
     drivers: [
-      { label: 'Tech Sector Downturn', desc: 'tenant risk', value: 41, color: '#f97316' },
-      { label: 'Lease Rollover', desc: '2024-2025', value: 35, color: '#eab308' },
-      { label: 'Market Softening', desc: 'Q4 data', value: 24, color: '#94a3b8' },
+      { label: 'Tech Sector Downturn', desc: 'tenant risk', value: 41, color: '#f97316', weight: 0.4 },
+      { label: 'Lease Rollover', desc: '2024-2025', value: 35, color: '#eab308', weight: 0.4 },
+      { label: 'Market Softening', desc: 'Q4 data', value: 24, color: '#94a3b8', weight: 0.2 },
     ],
+    history: generateHistory(58.6),
+    prevQuarterScore: 56.2,
     risks: adjustRisks(generateRisks(58.6, 'ELEVATED', '+4%', 'up'))
   },
   {
@@ -119,10 +137,12 @@ export const ASSETS_DATA = [
       { subject: 'Environment', A: 88 },
     ],
     drivers: [
-      { label: 'Strong Occupancy', desc: '97% rate', value: 60, color: '#2ecc71' },
-      { label: 'Lease Renewals', desc: 'secured 2026', value: 25, color: '#2ecc71' },
-      { label: 'NOI Growth', desc: '3.2% YoY', value: 15, color: '#2ecc71' },
+      { label: 'Strong Occupancy', desc: '97% rate', value: 60, color: '#2ecc71', weight: 0.5 },
+      { label: 'Lease Renewals', desc: 'secured 2026', value: 25, color: '#2ecc71', weight: 0.3 },
+      { label: 'NOI Growth', desc: '3.2% YoY', value: 15, color: '#2ecc71', weight: 0.2 },
     ],
+    history: generateHistory(35.2),
+    prevQuarterScore: 38.5,
     risks: adjustRisks(generateRisks(35.2, 'SAFE', '-2%', 'down'))
   },
   {
@@ -139,10 +159,12 @@ export const ASSETS_DATA = [
       { subject: 'Environment', A: 72 },
     ],
     drivers: [
-      { label: 'Interest Rate Exposure', desc: 'variable rate', value: 48, color: '#eab308' },
-      { label: 'Tenant Concentration', desc: 'single-tenant 60%', value: 32, color: '#f97316' },
-      { label: 'FX Risk', desc: 'EUR/GBP', value: 20, color: '#94a3b8' },
+      { label: 'Interest Rate Exposure', desc: 'variable rate', value: 48, color: '#eab308', weight: 0.5 },
+      { label: 'Tenant Concentration', desc: 'single-tenant 60%', value: 32, color: '#f97316', weight: 0.3 },
+      { label: 'FX Risk', desc: 'EUR/GBP', value: 20, color: '#94a3b8', weight: 0.2 },
     ],
+    history: generateHistory(44.1),
+    prevQuarterScore: 42.8,
     risks: adjustRisks(generateRisks(44.1, 'MODERATE', '+1%', 'up'))
   },
   {
@@ -159,10 +181,12 @@ export const ASSETS_DATA = [
       { subject: 'Environment', A: 85 },
     ],
     drivers: [
-      { label: 'Long Term Leases', desc: '8yr avg', value: 55, color: '#2ecc71' },
-      { label: 'E-Commerce Demand', desc: 'growing', value: 30, color: '#2ecc71' },
-      { label: 'Low Vacancy', desc: '2.1%', value: 15, color: '#2ecc71' },
+      { label: 'Long Term Leases', desc: '8yr avg', value: 55, color: '#2ecc71', weight: 0.6 },
+      { label: 'E-Commerce Demand', desc: 'growing', value: 30, color: '#2ecc71', weight: 0.3 },
+      { label: 'Low Vacancy', desc: '2.1%', value: 15, color: '#2ecc71', weight: 0.1 },
     ],
+    history: generateHistory(29.8),
+    prevQuarterScore: 31.5,
     risks: adjustRisks(generateRisks(29.8, 'SAFE', '-5%', 'down'))
   },
   {
@@ -179,10 +203,12 @@ export const ASSETS_DATA = [
       { subject: 'Environment', A: 60 },
     ],
     drivers: [
-      { label: 'Macro Slowdown', desc: 'GDP risk', value: 39, color: '#f97316' },
-      { label: 'Refinancing Risk', desc: '2025 maturity', value: 36, color: '#eab308' },
-      { label: 'Tenant Defaults', desc: '2 pending', value: 25, color: '#94a3b8' },
+      { label: 'Macro Slowdown', desc: 'GDP risk', value: 39, color: '#f97316', weight: 0.4 },
+      { label: 'Refinancing Risk', desc: '2025 maturity', value: 36, color: '#eab308', weight: 0.4 },
+      { label: 'Tenant Defaults', desc: '2 pending', value: 25, color: '#94a3b8', weight: 0.2 },
     ],
+    history: generateHistory(52.4),
+    prevQuarterScore: 49.8,
     risks: adjustRisks(generateRisks(52.4, 'ELEVATED', '+6%', 'up'))
   },
   {
@@ -199,10 +225,12 @@ export const ASSETS_DATA = [
       { subject: 'Environment', A: 85 },
     ],
     drivers: [
-      { label: 'Tourism Recovery', desc: 'post-COVID', value: 45, color: '#eab308' },
-      { label: 'Luxury Brand Demand', desc: 'stable', value: 35, color: '#2ecc71' },
-      { label: 'Renovation Costs', desc: 'Q3 planned', value: 20, color: '#94a3b8' },
+      { label: 'Tourism Recovery', desc: 'post-COVID', value: 45, color: '#eab308', weight: 0.5 },
+      { label: 'Luxury Brand Demand', desc: 'stable', value: 35, color: '#2ecc71', weight: 0.3 },
+      { label: 'Renovation Costs', desc: 'Q3 planned', value: 20, color: '#94a3b8', weight: 0.2 },
     ],
+    history: generateHistory(38.7),
+    prevQuarterScore: 36.4,
     risks: adjustRisks(generateRisks(38.7, 'MODERATE', '+2%', 'up'))
   },
   {
@@ -219,10 +247,12 @@ export const ASSETS_DATA = [
       { subject: 'Environment', A: 98 },
     ],
     drivers: [
-      { label: 'Green Energy Focus', desc: 'ESG positive', value: 60, color: '#2ecc71' },
-      { label: 'Stable Tenants', desc: 'Tech giants', value: 30, color: '#2ecc71' },
-      { label: 'Utility Costs Down', desc: 'Subsidy', value: 10, color: '#2ecc71' },
+      { label: 'Green Energy Focus', desc: 'ESG positive', value: 60, color: '#2ecc71', weight: 0.5 },
+      { label: 'Stable Tenants', desc: 'Tech giants', value: 30, color: '#2ecc71', weight: 0.3 },
+      { label: 'Utility Costs Down', desc: 'Subsidy', value: 10, color: '#2ecc71', weight: 0.2 },
     ],
+    history: generateHistory(32.1),
+    prevQuarterScore: 33.5,
     risks: adjustRisks(generateRisks(32.1, 'SAFE', '-1%', 'down'))
   },
   {
@@ -239,10 +269,12 @@ export const ASSETS_DATA = [
       { subject: 'Environment', A: 70 },
     ],
     drivers: [
-      { label: 'Supply Chain Shifts', desc: 'nearshoring', value: 45, color: '#eab308' },
-      { label: 'Labor Shortage', desc: 'wage inflation', value: 35, color: '#f97316' },
-      { label: 'Border Tariffs', desc: 'export risk', value: 20, color: '#eab308' },
+      { label: 'Supply Chain Shifts', desc: 'nearshoring', value: 45, color: '#eab308', weight: 0.4 },
+      { label: 'Labor Shortage', desc: 'wage inflation', value: 35, color: '#f97316', weight: 0.4 },
+      { label: 'Border Tariffs', desc: 'export risk', value: 20, color: '#eab308', weight: 0.2 },
     ],
+    history: generateHistory(55.8),
+    prevQuarterScore: 52.1,
     risks: adjustRisks(generateRisks(55.8, 'ELEVATED', '+4%', 'up'))
   },
   {
@@ -259,10 +291,12 @@ export const ASSETS_DATA = [
       { subject: 'Environment', A: 88 },
     ],
     drivers: [
-      { label: 'Foreign Investment', desc: 'Golden Visa end', value: 50, color: '#f97316' },
-      { label: 'Tourism Boom', desc: 'retail boost', value: 30, color: '#2ecc71' },
-      { label: 'Interest Rates', desc: 'ECB hikes', value: 20, color: '#eab308' },
+      { label: 'Foreign Investment', desc: 'Golden Visa end', value: 50, color: '#f97316', weight: 0.5 },
+      { label: 'Tourism Boom', desc: 'retail boost', value: 30, color: '#2ecc71', weight: 0.3 },
+      { label: 'Interest Rates', desc: 'ECB hikes', value: 20, color: '#eab308', weight: 0.2 },
     ],
+    history: generateHistory(48.0),
+    prevQuarterScore: 45.5,
     risks: adjustRisks(generateRisks(48.0, 'MODERATE', '+1%', 'up'))
   },
   {
@@ -279,10 +313,12 @@ export const ASSETS_DATA = [
       { subject: 'Environment', A: 82 },
     ],
     drivers: [
-      { label: 'Gov Contracts', desc: 'guaranteed rent', value: 70, color: '#2ecc71' },
-      { label: 'Low Competitors', desc: 'niche market', value: 20, color: '#2ecc71' },
-      { label: 'Demographics', desc: 'aging pop', value: 10, color: '#2ecc71' },
+      { label: 'Gov Contracts', desc: 'guaranteed rent', value: 70, color: '#2ecc71', weight: 0.6 },
+      { label: 'Low Competitors', desc: 'niche market', value: 20, color: '#2ecc71', weight: 0.25 },
+      { label: 'Demographics', desc: 'aging pop', value: 10, color: '#2ecc71', weight: 0.15 },
     ],
+    history: generateHistory(28.5),
+    prevQuarterScore: 30.2,
     risks: adjustRisks(generateRisks(28.5, 'SAFE', '-3%', 'down'))
   }
 ];
@@ -297,3 +333,77 @@ export const STATUS_CONFIG = {
   MODERATE: { color: '#ffcd3c', bg: 'rgba(255,205,60,0.15)', label: 'MODERATE' },
   SAFE:     { color: '#2ecc71', bg: 'rgba(46,204,113,0.15)', label: 'SAFE' },
 };
+
+// ── Regional Hierarchy ───────────────────────────────────────────────────────
+export const REGIONAL_DATA = {
+  'Germany': {
+    center: [10.4515, 51.1657], zoom: 5,
+    regions: {
+      'Bavaria': {
+        center: [11.5580, 48.3953], zoom: 7,
+        cities: {
+          'Munich': {
+            center: [11.5820, 48.1351], zoom: 10,
+            districts: {
+              'Altstadt-Lehel': { center: [11.5833, 48.1397], zoom: 13 },
+              'Maxvorstadt': { center: [11.5721, 48.1500], zoom: 13 },
+            }
+          }
+        }
+      },
+      'Berlin': {
+        center: [13.4050, 52.5200], zoom: 10,
+        cities: {
+          'Berlin': {
+            center: [13.4050, 52.5200], zoom: 11,
+            districts: {
+              'Mitte': { center: [13.4050, 52.5200], zoom: 13 },
+              'Charlottenburg': { center: [13.2954, 52.5186], zoom: 13 },
+            }
+          }
+        }
+      }
+    }
+  },
+  'Switzerland': {
+    center: [8.2275, 46.8182], zoom: 7,
+    regions: {
+      'Zurich': {
+        center: [8.5417, 47.3769], zoom: 10,
+        cities: {
+          'Zurich City': {
+            center: [8.5417, 47.3769], zoom: 12,
+            districts: {
+              'District 1': { center: [8.5417, 47.3769], zoom: 14 },
+              'District 5': { center: [8.5247, 47.3876], zoom: 14 },
+            }
+          }
+        }
+      }
+    }
+  },
+  'Poland': {
+    center: [19.1451, 51.9194], zoom: 6,
+    regions: {
+      'Masovian': {
+        center: [21.0122, 52.2297], zoom: 8,
+        cities: {
+          'Warsaw': {
+            center: [21.0122, 52.2297], zoom: 11,
+            districts: {
+              'Mokotów': { center: [21.0100, 52.1900], zoom: 13 },
+              'Służewiec': { center: [20.9904, 52.1797], zoom: 15 },
+            }
+          }
+        }
+      }
+    }
+  }
+};
+
+export const DATA_VERSION = 'v2.4';
+export const PORTFOLIO_VERSION = 'v1.3';
+export const VERSION_HISTORY = [
+  { id: 'v1.3', type: 'Portfolio', date: '01 Apr 2025', desc: 'Manual - after a recommended action is implemented and verified' },
+  { id: 'v2.4', type: 'Data', date: '12 Mar 2025', desc: 'Scheduled refresh (weekly / monthly / quarterly)' }
+];

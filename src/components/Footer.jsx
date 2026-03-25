@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { TrendingUp, TrendingDown, Clock, Activity, BarChart3, Target, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock, Activity, Target, Zap } from 'lucide-react';
 
 const Footer = ({ assets, filters }) => {
   const kpis = useMemo(() => {
@@ -7,8 +7,9 @@ const Footer = ({ assets, filters }) => {
 
     // Portfolio value
     const totalValue = assets.reduce((sum, a) => {
-      const n = parseFloat(a.value.replace(/[$M]/g, ''));
-      return sum + n;
+      const valStr = a.value ? a.value.toString() : '0';
+      const n = parseFloat(valStr.replace(/[$M]/g, ''));
+      return sum + (isNaN(n) ? 0 : n);
     }, 0).toFixed(1);
 
     // Average risk score
@@ -29,11 +30,6 @@ const Footer = ({ assets, filters }) => {
     const elevCount = assets.filter(a => a.status === 'ELEVATED').length;
     const modCount = assets.filter(a => a.status === 'MODERATE').length;
     const safeCount = assets.filter(a => a.status === 'SAFE').length;
-
-    // Highest risk asset
-    const highestRisk = assets.length
-      ? assets.reduce((max, a) => (a.score > max.score ? a : max), assets[0])
-      : null;
 
     // Top risk driver (most common first driver among filtered assets)
     const driverCounts = {};
@@ -56,8 +52,7 @@ const Footer = ({ assets, filters }) => {
     return {
       total, totalValue, avgScore, incPct, decPct, uncPct,
       critCount, elevCount, modCount, safeCount,
-      highestRisk, topDriver,
-      tfLabel, avgPredIncrease, avgPredDecrease, avgPredStable,
+      topDriver, tfLabel, avgPredIncrease, avgPredDecrease, avgPredStable,
     };
   }, [assets, filters]);
 
@@ -85,9 +80,9 @@ const Footer = ({ assets, filters }) => {
       padding: '0 24px',
       flexShrink: 0,
       gap: 16,
+      zIndex: 10,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-
         {/* Core Stats */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -107,7 +102,7 @@ const Footer = ({ assets, filters }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Target size={11} color={scoreColor} />
           <span style={{ fontSize: 9, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg Risk:</span>
-          <span style={{ fontSize: 13, fontWeight: 900, color: scoreColor, transition: 'color 0.3s' }}>{kpis.avgScore}</span>
+          <span style={{ fontSize: 13, fontWeight: 900, color: scoreColor }}>{kpis.avgScore}</span>
         </div>
 
         <div style={{ height: 20, width: 1, background: 'rgba(255,255,255,0.08)' }} />
@@ -116,17 +111,13 @@ const Footer = ({ assets, filters }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ fontSize: 9, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perf:</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }} title="Increasing risk">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
               <TrendingUp size={10} color="#ff4d4d" />
               <span style={{ fontSize: 10, fontWeight: 700, color: '#ff4d4d' }}>{kpis.incPct}%</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }} title="Decreasing risk">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
               <TrendingDown size={10} color="#2ecc71" />
               <span style={{ fontSize: 10, fontWeight: 700, color: '#2ecc71' }}>{kpis.decPct}%</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }} title="Stable">
-              <Clock size={10} color="#94a3b8" />
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8' }}>{kpis.uncPct}%</span>
             </div>
           </div>
         </div>
@@ -138,56 +129,31 @@ const Footer = ({ assets, filters }) => {
           <div style={{ fontSize: 9, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{kpis.tfLabel} Forecast:</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: '#2ecc71' }}>+{kpis.avgPredIncrease}%</span>
-            <span style={{ fontSize: 8, color: '#334155' }}>/</span>
             <span style={{ fontSize: 10, fontWeight: 700, color: '#ff4d4d' }}>-{kpis.avgPredDecrease}%</span>
-            <span style={{ fontSize: 8, color: '#334155' }}>/</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8' }}>{kpis.avgPredStable}%</span>
             <Activity size={10} color="#3b82f6" style={{ opacity: 0.6 }} />
           </div>
         </div>
-
-        <div style={{ height: 20, width: 1, background: 'rgba(255,255,255,0.08)' }} />
-
-        {/* Top Risk Driver */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Zap size={10} color="#ff9f43" />
-          <span style={{ fontSize: 9, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Top Driver:</span>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{kpis.topDriver}</span>
-        </div>
       </div>
 
-      {/* Right side: Status pills + filter context */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-        {/* Active filter context */}
-        {activeFilterLabels.length > 0 && (
-          <div style={{
-            fontSize: 8, fontWeight: 700, color: '#3b82f6',
-            background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.15)',
-            padding: '2px 8px', borderRadius: 4, maxWidth: 200,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            🔍 {activeFilterLabels.join(' · ')}
+      {/* Right side status pills */}
+      <div style={{ display: 'flex', gap: 6 }}>
+        {[
+          { label: 'Crit', count: kpis.critCount, color: '#ff4d4d', bg: 'rgba(255,77,77,0.1)' },
+          { label: 'Elev', count: kpis.elevCount, color: '#ff9f43', bg: 'rgba(255,159,67,0.1)' },
+          { label: 'Mod', count: kpis.modCount, color: '#ffcd3c', bg: 'rgba(255,205,60,0.1)' },
+          { label: 'Safe', count: kpis.safeCount, color: '#2ecc71', bg: 'rgba(46,204,113,0.1)' },
+        ].map(s => (
+          <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4, background: s.bg, padding: '2px 8px', borderRadius: 4 }}>
+            <div style={{ width: 4, height: 4, borderRadius: '50%', background: s.color }} />
+            <span style={{ fontSize: 9, fontWeight: 800, color: s.color }}>{s.count}</span>
+            <span style={{ fontSize: 7, color: '#475569', fontWeight: 600 }}>{s.label.toUpperCase()}</span>
           </div>
-        )}
-
-        {/* Status pills */}
-        <div style={{ display: 'flex', gap: 6 }}>
-          {[
-            { label: 'Crit', count: kpis.critCount, color: '#ff4d4d', bg: 'rgba(255,77,77,0.1)' },
-            { label: 'Elev', count: kpis.elevCount, color: '#ff9f43', bg: 'rgba(255,159,67,0.1)' },
-            { label: 'Mod', count: kpis.modCount, color: '#ffcd3c', bg: 'rgba(255,205,60,0.1)' },
-            { label: 'Safe', count: kpis.safeCount, color: '#2ecc71', bg: 'rgba(46,204,113,0.1)' },
-          ].map(s => (
-            <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4, background: s.bg, padding: '2px 8px', borderRadius: 4 }}>
-              <div style={{ width: 4, height: 4, borderRadius: '50%', background: s.color }} />
-              <span style={{ fontSize: 9, fontWeight: 800, color: s.color }}>{s.count}</span>
-              <span style={{ fontSize: 7, color: '#475569', fontWeight: 600 }}>{s.label.toUpperCase()}</span>
-            </div>
-          ))}
-        </div>
+        ))}
       </div>
     </footer>
   );
 };
 
 export default Footer;
+
+
