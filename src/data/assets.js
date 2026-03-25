@@ -334,8 +334,16 @@ export const STATUS_CONFIG = {
   SAFE:     { color: '#2ecc71', bg: 'rgba(46,204,113,0.15)', label: 'SAFE' },
 };
 
-// ── Regional Hierarchy ───────────────────────────────────────────────────────
+// ── Geographic Level Constants ────────────────────────────────────────────────
+// L1: Country | L2: Region | L3: City | L4: District | L5: Locality | L6: Micro Market
+export const GEO_LEVELS = ['country', 'region', 'city', 'district', 'locality', 'microMarket'];
+
+// ── Regional Hierarchy (L1→L6) ───────────────────────────────────────────────
+// Priority: Germany + Switzerland (full depth), others (L1-L3 stubs)
 export const REGIONAL_DATA = {
+  // ════════════════════════════════════════════════════════════════════════════
+  // GERMANY — Full L1→L6
+  // ════════════════════════════════════════════════════════════════════════════
   'Germany': {
     center: [10.4515, 51.1657], zoom: 5,
     regions: {
@@ -345,43 +353,303 @@ export const REGIONAL_DATA = {
           'Munich': {
             center: [11.5820, 48.1351], zoom: 10,
             districts: {
-              'Altstadt-Lehel': { center: [11.5833, 48.1397], zoom: 13 },
-              'Maxvorstadt': { center: [11.5721, 48.1500], zoom: 13 },
+              'Altstadt-Lehel': {
+                center: [11.5750, 48.1380], zoom: 13,
+                localities: {
+                  'Altstadt': {
+                    center: [11.5755, 48.1370], zoom: 15,
+                    microMarkets: {
+                      'Marienplatz Area': { center: [11.5760, 48.1374], zoom: 17 },
+                      'Viktualienmarkt': { center: [11.5768, 48.1350], zoom: 17 },
+                    }
+                  },
+                  'Lehel': {
+                    center: [11.5870, 48.1410], zoom: 15,
+                    microMarkets: {
+                      'Eisbach Quarter': { center: [11.5880, 48.1430], zoom: 17 },
+                      'St-Anna-Strasse': { center: [11.5850, 48.1400], zoom: 17 },
+                    }
+                  }
+                }
+              },
+              'Maxvorstadt': {
+                center: [11.5680, 48.1520], zoom: 13,
+                localities: {
+                  'Königsplatz': {
+                    center: [11.5650, 48.1460], zoom: 15,
+                    microMarkets: {
+                      'Museum Quarter': { center: [11.5640, 48.1470], zoom: 17 },
+                      'Brienner Strasse': { center: [11.5700, 48.1450], zoom: 17 },
+                    }
+                  },
+                  'Universität': {
+                    center: [11.5800, 48.1510], zoom: 15,
+                    microMarkets: {
+                      'Ludwigstrasse': { center: [11.5790, 48.1520], zoom: 17 },
+                      'Schellingstrasse': { center: [11.5730, 48.1530], zoom: 17 },
+                    }
+                  }
+                }
+              },
+              'Schwabing-West': {
+                center: [11.5600, 48.1600], zoom: 13,
+                localities: {
+                  'Hohenzollernplatz': {
+                    center: [11.5620, 48.1620], zoom: 15,
+                    microMarkets: {
+                      'Leopoldstrasse North': { center: [11.5640, 48.1640], zoom: 17 },
+                    }
+                  }
+                }
+              }
+            }
+          },
+          'Nuremberg': {
+            center: [11.0767, 49.4521], zoom: 11,
+            districts: {
+              'Altstadt': { center: [11.0770, 49.4540], zoom: 14, localities: {} },
+              'St. Johannis': { center: [11.0600, 49.4570], zoom: 14, localities: {} },
             }
           }
         }
       },
       'Berlin': {
-        center: [13.4050, 52.5200], zoom: 10,
+        center: [13.4050, 52.5200], zoom: 8,
         cities: {
           'Berlin': {
             center: [13.4050, 52.5200], zoom: 11,
             districts: {
-              'Mitte': { center: [13.4050, 52.5200], zoom: 13 },
-              'Charlottenburg': { center: [13.2954, 52.5186], zoom: 13 },
+              'Mitte': {
+                center: [13.3890, 52.5200], zoom: 13,
+                localities: {
+                  'Alexanderplatz': {
+                    center: [13.4115, 52.5219], zoom: 15,
+                    microMarkets: {
+                      'Alexanderstrasse': { center: [13.4130, 52.5230], zoom: 17 },
+                      'Karl-Marx-Allee': { center: [13.4200, 52.5200], zoom: 17 },
+                    }
+                  },
+                  'Potsdamer Platz': {
+                    center: [13.3760, 52.5096], zoom: 15,
+                    microMarkets: {
+                      'Sony Center': { center: [13.3740, 52.5100], zoom: 17 },
+                      'Leipziger Platz': { center: [13.3810, 52.5110], zoom: 17 },
+                    }
+                  },
+                  'Friedrichstrasse': {
+                    center: [13.3880, 52.5200], zoom: 15,
+                    microMarkets: {
+                      'Checkpoint Charlie': { center: [13.3905, 52.5075], zoom: 17 },
+                    }
+                  }
+                }
+              },
+              'Charlottenburg': {
+                center: [13.2954, 52.5186], zoom: 13,
+                localities: {
+                  'Kurfürstendamm': {
+                    center: [13.3280, 52.5040], zoom: 15,
+                    microMarkets: {
+                      'Breitscheidplatz': { center: [13.3350, 52.5050], zoom: 17 },
+                      'Savignyplatz': { center: [13.3210, 52.5050], zoom: 17 },
+                    }
+                  }
+                }
+              },
+              'Kreuzberg': {
+                center: [13.4000, 52.4980], zoom: 13,
+                localities: {
+                  'Bergmannkiez': {
+                    center: [13.3940, 52.4890], zoom: 15,
+                    microMarkets: {
+                      'Bergmannstrasse': { center: [13.3930, 52.4880], zoom: 17 },
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      'North Rhine-Westphalia': {
+        center: [7.6616, 51.4332], zoom: 7,
+        cities: {
+          'Düsseldorf': {
+            center: [6.7735, 51.2277], zoom: 11,
+            districts: {
+              'Medienhafen': { center: [6.7600, 51.2170], zoom: 14, localities: {} },
+              'Königsallee': { center: [6.7800, 51.2240], zoom: 14, localities: {} },
+            }
+          },
+          'Cologne': {
+            center: [6.9603, 50.9375], zoom: 11,
+            districts: {
+              'Innenstadt': { center: [6.9570, 50.9380], zoom: 14, localities: {} },
+            }
+          }
+        }
+      },
+      'Hamburg': {
+        center: [9.9937, 53.5511], zoom: 9,
+        cities: {
+          'Hamburg': {
+            center: [9.9937, 53.5511], zoom: 11,
+            districts: {
+              'HafenCity': { center: [10.0020, 53.5410], zoom: 14, localities: {} },
+              'Eppendorf': { center: [9.9830, 53.5870], zoom: 14, localities: {} },
+            }
+          }
+        }
+      },
+      'Hesse': {
+        center: [8.6821, 50.1109], zoom: 8,
+        cities: {
+          'Frankfurt': {
+            center: [8.6821, 50.1109], zoom: 11,
+            districts: {
+              'Bankenviertel': { center: [8.6700, 50.1130], zoom: 14, localities: {} },
+              'Westend': { center: [8.6600, 50.1200], zoom: 14, localities: {} },
             }
           }
         }
       }
     }
   },
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // SWITZERLAND — Full L1→L6
+  // ════════════════════════════════════════════════════════════════════════════
   'Switzerland': {
     center: [8.2275, 46.8182], zoom: 7,
     regions: {
-      'Zurich': {
-        center: [8.5417, 47.3769], zoom: 10,
+      'Zürich Canton': {
+        center: [8.5417, 47.3769], zoom: 9,
         cities: {
-          'Zurich City': {
+          'Zürich': {
             center: [8.5417, 47.3769], zoom: 12,
             districts: {
-              'District 1': { center: [8.5417, 47.3769], zoom: 14 },
-              'District 5': { center: [8.5247, 47.3876], zoom: 14 },
+              'Kreis 1 (Altstadt)': {
+                center: [8.5400, 47.3720], zoom: 14,
+                localities: {
+                  'Lindenhof': {
+                    center: [8.5390, 47.3730], zoom: 16,
+                    microMarkets: {
+                      'Bahnhofstrasse North': { center: [8.5391, 47.3740], zoom: 17 },
+                      'Paradeplatz': { center: [8.5392, 47.3710], zoom: 17 },
+                    }
+                  },
+                  'Rathaus': {
+                    center: [8.5430, 47.3710], zoom: 16,
+                    microMarkets: {
+                      'Niederdorf': { center: [8.5440, 47.3720], zoom: 17 },
+                    }
+                  }
+                }
+              },
+              'Kreis 2 (Enge)': {
+                center: [8.5310, 47.3620], zoom: 14,
+                localities: {
+                  'Enge': {
+                    center: [8.5310, 47.3600], zoom: 16,
+                    microMarkets: {
+                      'Bürkliplatz': { center: [8.5380, 47.3660], zoom: 17 },
+                    }
+                  }
+                }
+              },
+              'Kreis 5 (Industriequartier)': {
+                center: [8.5200, 47.3870], zoom: 14,
+                localities: {
+                  'Escher Wyss': {
+                    center: [8.5150, 47.3900], zoom: 16,
+                    microMarkets: {
+                      'Prime Tower Area': { center: [8.5160, 47.3910], zoom: 17 },
+                      'Turbinenplatz': { center: [8.5190, 47.3890], zoom: 17 },
+                    }
+                  },
+                  'Gewerbeschule': {
+                    center: [8.5260, 47.3840], zoom: 16,
+                    microMarkets: {
+                      'Langstrasse': { center: [8.5270, 47.3820], zoom: 17 },
+                    }
+                  }
+                }
+              },
+              'Kreis 8 (Riesbach)': {
+                center: [8.5560, 47.3550], zoom: 14,
+                localities: {
+                  'Seefeld': {
+                    center: [8.5540, 47.3570], zoom: 16,
+                    microMarkets: {
+                      'Seefeldstrasse': { center: [8.5530, 47.3580], zoom: 17 },
+                    }
+                  }
+                }
+              }
+            }
+          },
+          'Winterthur': {
+            center: [8.7295, 47.4985], zoom: 12,
+            districts: {
+              'Altstadt': { center: [8.7290, 47.4990], zoom: 14, localities: {} },
+              'Töss': { center: [8.7050, 47.4950], zoom: 14, localities: {} },
+            }
+          }
+        }
+      },
+      'Geneva Canton': {
+        center: [6.1432, 46.2044], zoom: 10,
+        cities: {
+          'Geneva': {
+            center: [6.1432, 46.2044], zoom: 12,
+            districts: {
+              'Eaux-Vives': {
+                center: [6.1600, 46.2020], zoom: 14,
+                localities: {
+                  'Rue du Lac': {
+                    center: [6.1580, 46.2030], zoom: 16,
+                    microMarkets: {
+                      'Jet d\'Eau Quarter': { center: [6.1560, 46.2070], zoom: 17 },
+                    }
+                  }
+                }
+              },
+              'Plainpalais': { center: [6.1410, 46.1990], zoom: 14, localities: {} },
+              'Nations': { center: [6.1350, 46.2230], zoom: 14, localities: {} },
+            }
+          }
+        }
+      },
+      'Bern Canton': {
+        center: [7.4474, 46.9480], zoom: 10,
+        cities: {
+          'Bern': {
+            center: [7.4474, 46.9480], zoom: 12,
+            districts: {
+              'Altstadt': { center: [7.4480, 46.9480], zoom: 14, localities: {} },
+              'Kirchenfeld': { center: [7.4530, 46.9430], zoom: 14, localities: {} },
+            }
+          }
+        }
+      },
+      'Basel-Stadt': {
+        center: [7.5886, 47.5596], zoom: 11,
+        cities: {
+          'Basel': {
+            center: [7.5886, 47.5596], zoom: 12,
+            districts: {
+              'Grossbasel': { center: [7.5850, 47.5550], zoom: 14, localities: {} },
+              'Kleinbasel': { center: [7.5950, 47.5650], zoom: 14, localities: {} },
             }
           }
         }
       }
     }
   },
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // POLAND — L1→L4
+  // ════════════════════════════════════════════════════════════════════════════
   'Poland': {
     center: [19.1451, 51.9194], zoom: 6,
     regions: {
@@ -391,14 +659,107 @@ export const REGIONAL_DATA = {
           'Warsaw': {
             center: [21.0122, 52.2297], zoom: 11,
             districts: {
-              'Mokotów': { center: [21.0100, 52.1900], zoom: 13 },
-              'Służewiec': { center: [20.9904, 52.1797], zoom: 15 },
+              'Mokotów': { center: [21.0100, 52.1900], zoom: 13, localities: {} },
+              'Służewiec': { center: [20.9904, 52.1797], zoom: 15, localities: {} },
+              'Wola': { center: [20.9700, 52.2350], zoom: 13, localities: {} },
             }
           }
         }
       }
     }
-  }
+  },
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // OTHER COUNTRIES — L1→L3 stubs (expandable later)
+  // ════════════════════════════════════════════════════════════════════════════
+  'France': {
+    center: [2.3522, 46.6034], zoom: 5,
+    regions: {
+      'Île-de-France': {
+        center: [2.3522, 48.8566], zoom: 9,
+        cities: {
+          'Paris': { center: [2.3522, 48.8566], zoom: 12, districts: {} },
+        }
+      }
+    }
+  },
+  'UK': {
+    center: [-1.2578, 52.3555], zoom: 5,
+    regions: {
+      'Greater London': {
+        center: [-0.1276, 51.5074], zoom: 9,
+        cities: {
+          'London': { center: [-0.1276, 51.5074], zoom: 12, districts: {} },
+        }
+      }
+    }
+  },
+  'Netherlands': {
+    center: [5.2913, 52.1326], zoom: 7,
+    regions: {
+      'North Holland': {
+        center: [4.9041, 52.3676], zoom: 9,
+        cities: {
+          'Amsterdam': { center: [4.9041, 52.3676], zoom: 12, districts: {} },
+        }
+      }
+    }
+  },
+  'Spain': {
+    center: [-3.7492, 40.4637], zoom: 5,
+    regions: {
+      'Community of Madrid': {
+        center: [-3.7038, 40.4168], zoom: 9,
+        cities: {
+          'Madrid': { center: [-3.7038, 40.4168], zoom: 12, districts: {} },
+        }
+      }
+    }
+  },
+  'Italy': {
+    center: [12.5674, 41.8719], zoom: 5,
+    regions: {
+      'Lombardy': {
+        center: [9.1900, 45.4642], zoom: 8,
+        cities: {
+          'Milan': { center: [9.1900, 45.4642], zoom: 12, districts: {} },
+        }
+      }
+    }
+  },
+  'Sweden': {
+    center: [18.0686, 59.3293], zoom: 5,
+    regions: {
+      'Stockholm County': {
+        center: [18.0686, 59.3293], zoom: 9,
+        cities: {
+          'Stockholm': { center: [18.0686, 59.3293], zoom: 12, districts: {} },
+        }
+      }
+    }
+  },
+  'Portugal': {
+    center: [-9.1393, 38.7223], zoom: 6,
+    regions: {
+      'Lisbon District': {
+        center: [-9.1393, 38.7223], zoom: 9,
+        cities: {
+          'Lisbon': { center: [-9.1393, 38.7223], zoom: 12, districts: {} },
+        }
+      }
+    }
+  },
+  'Austria': {
+    center: [16.3738, 48.2082], zoom: 6,
+    regions: {
+      'Vienna': {
+        center: [16.3738, 48.2082], zoom: 10,
+        cities: {
+          'Vienna': { center: [16.3738, 48.2082], zoom: 12, districts: {} },
+        }
+      }
+    }
+  },
 };
 
 export const DATA_VERSION = 'v2.4';
