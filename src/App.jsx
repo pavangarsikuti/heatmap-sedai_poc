@@ -4,9 +4,7 @@ import SidebarLeft from './components/SidebarLeft';
 import MapView from './components/MapView';
 import ControlBar from './components/ControlBar';
 import Footer from './components/Footer';
-import RightSidebar from './components/RightSidebar';
-import ChangelogModal from './components/ChangelogModal';
-import { ASSETS_DATA, REGIONAL_DATA, DATA_VERSION, PORTFOLIO_VERSION } from './data/assets';
+import { ASSETS_DATA } from './data/assets';
 
 const DEFAULT_FILTERS = {
   riskType: 'All Risks',
@@ -25,11 +23,6 @@ const App = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [theme, setTheme] = useState('dark');
   const [focusAsset, setFocusAsset] = useState(null);
-  const [geoPath, setGeoPath] = useState(['Europe']);
-  const [portfolioVersion, setPortfolioVersion] = useState(PORTFOLIO_VERSION);
-  const [dataVersion] = useState(DATA_VERSION);
-  const [showChangelog, setShowChangelog] = useState(false);
-  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
 
   const handleToggleSidebar = () => setIsSidebarOpen(prev => !prev);
   const handleThemeChange = (newTheme) => setTheme(newTheme);
@@ -38,26 +31,8 @@ const App = () => {
   const handleFilterChange = (key, value) => {
     if (key === 'reset') {
       setFilters(DEFAULT_FILTERS);
-      setGeoPath(['Europe']);
     } else {
       setFilters(prev => ({ ...prev, [key]: value }));
-    }
-  };
-
-  const handleDrillDown = (name, level) => {
-    setGeoPath(prev => [...prev, name]);
-  };
-
-  const handleStepUp = (index) => {
-    setGeoPath(prev => prev.slice(0, index + 1));
-  };
-
-  const handlePortfolioUpdate = () => {
-    if (window.confirm("Mark recommended action as verified and bump portfolio version?")) {
-      setPortfolioVersion(prev => {
-        const [major, minor] = prev.replace('v', '').split('.').map(Number);
-        return `v${major}.${minor + 1}`;
-      });
     }
   };
 
@@ -83,17 +58,6 @@ const App = () => {
     });
 
     return processAssets.filter(asset => {
-      // Geographic filtering based on geoPath
-      if (geoPath.length > 1) {
-        const [,, country, region, city, district] = geoPath; // Europe is index 0
-        if (geoPath.includes('Germany') && asset.country !== 'Germany') return false;
-        if (geoPath.includes('Switzerland') && asset.country !== 'Switzerland') return false;
-        if (geoPath.includes('Poland') && asset.country !== 'Poland') return false;
-        
-        // Finer grain filtering if we have city/district info
-        if (city && asset.city !== city) return false;
-      }
-
       if (filters.fund !== 'All' && asset.fund !== filters.fund) return false;
       if (filters.assetType !== 'All' && asset.assetType !== filters.assetType) return false;
       if (filters.status !== 'All' && asset.status !== filters.status) return false;
@@ -136,39 +100,16 @@ const App = () => {
 
             <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <ControlBar filters={filters} onFilterChange={handleFilterChange} />
-              <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
-                <MapView 
-                  filteredAssets={filteredAssets} 
-                  viewMode={filters.viewMode}
-                  isSidebarOpen={isSidebarOpen} 
-                  isRightSidebarOpen={isRightSidebarOpen}
-                  onToggleSidebar={handleToggleSidebar}
-                  theme={theme}
-                  onThemeChange={handleThemeChange}
-                  focusAsset={focusAsset}
-                  geoPath={geoPath}
-                  onDrillDown={handleDrillDown}
-                  onStepUp={handleStepUp}
-                />
-                <RightSidebar 
-                  isOpen={isRightSidebarOpen}
-                  onToggle={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
-                  assets={filteredAssets}
-                  filters={filters}
-                  portfolioVersion={portfolioVersion}
-                  dataVersion={dataVersion}
-                  onUpdatePortfolio={handlePortfolioUpdate}
-                  onShowChangelog={() => setShowChangelog(true)}
-                />
-              </div>
-              <Footer 
-                assets={filteredAssets} 
-                filters={filters} 
+              <MapView 
+                filteredAssets={filteredAssets} 
+                viewMode={filters.viewMode}
+                isSidebarOpen={isSidebarOpen} 
+                onToggleSidebar={handleToggleSidebar}
+                theme={theme}
+                onThemeChange={handleThemeChange}
+                focusAsset={focusAsset}
               />
-              <ChangelogModal 
-                isOpen={showChangelog} 
-                onClose={() => setShowChangelog(false)} 
-              />
+              <Footer assets={filteredAssets} filters={filters} />
             </main>
           </div>
         ) : (
