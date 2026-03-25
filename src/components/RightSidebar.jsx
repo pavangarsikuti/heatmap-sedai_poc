@@ -53,55 +53,76 @@ const RightSidebar = ({
   return (
     <div style={{
       position: 'relative',
-      width: isOpen ? 320 : 0,
+      width: isOpen ? 340 : 0,
       height: '100%',
-      background: 'rgba(7, 8, 17, 0.85)',
-      backdropFilter: 'blur(32px)',
+      background: 'rgba(7, 8, 17, 0.95)',
+      backdropFilter: 'blur(48px)',
       borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
-      transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      transition: 'width 0.4s cubic-bezier(0.19, 1, 0.22, 1)',
       display: 'flex',
       flexDirection: 'column',
-      overflow: 'hidden',
+      overflow: 'visible',
       zIndex: 100,
     }}>
-      {/* Toggle Button */}
+      {/* Dynamic Toggle Button - Always Visible */}
       <button
         onClick={onToggle}
         style={{
           position: 'absolute',
-          left: isOpen ? 0 : -32,
-          top: 24,
+          left: -20,
+          top: '50%',
+          transform: 'translateY(-50%)',
           width: 32,
-          height: 48,
-          background: 'rgba(7, 8, 17, 0.95)',
+          height: 32,
+          background: 'rgba(7, 8, 17, 0.9)',
+          backdropFilter: 'blur(12px)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRight: 'none',
-          borderRadius: '8px 0 0 8px',
+          borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#94a3b8',
+          color: '#3b82f6',
           cursor: 'pointer',
-          transition: 'all 0.3s',
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          zIndex: 101,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+          e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+          e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
         }}
       >
-        {isOpen ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        <div style={{
+          transform: `rotate(${isOpen ? 0 : 180}deg)`,
+          transition: 'transform 0.4s',
+          display: 'flex'
+        }}>
+          <ChevronRight size={16} />
+        </div>
       </button>
 
       {isOpen && metrics && (
-        <div style={{ flex: 1, padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 24, overflowY: 'auto' }}>
+        <div className="detail-scroll" style={{ flex: 1, padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: 32, overflowY: 'auto' }}>
           {/* Header */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Activity size={16} color="#3b82f6" />
-              <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.05em', color: '#f8fafc' }}>RISK INTELLIGENCE</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(59,130,246,0.2)' }}>
+                <Activity size={16} color="#3b82f6" />
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 900, letterSpacing: '0.1em', color: '#f8fafc' }}>RISK INTELLIGENCE</span>
             </div>
-            <VersionControl 
-              portfolioVersion={portfolioVersion} 
-              dataVersion={dataVersion} 
-              onUpdatePortfolio={onUpdatePortfolio}
-              onShowChangelog={onShowChangelog}
-            />
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.04)' }}>
+              <VersionControl 
+                portfolioVersion={portfolioVersion} 
+                dataVersion={dataVersion} 
+                onUpdatePortfolio={onUpdatePortfolio}
+                onShowChangelog={onShowChangelog}
+              />
+            </div>
           </div>
 
           <div style={{ height: 1, background: 'rgba(255, 255, 255, 0.05)' }} />
@@ -201,9 +222,9 @@ const RightSidebar = ({
             </div>
           </div>
 
-          <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 8, color: '#475569' }}>
-            <Info size={12} />
-            <span style={{ fontSize: 9, fontWeight: 600 }}>Regional data updated monthly.</span>
+          <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 8, color: '#4b5563', padding: '0 4px' }}>
+            <Info size={14} color="#3b82f6" />
+            <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.02em' }}>Intelligence feeds updated every week.</span>
           </div>
         </div>
       )}

@@ -10,13 +10,13 @@ import { ASSETS_DATA, REGIONAL_DATA, DATA_VERSION, PORTFOLIO_VERSION } from './d
 
 const DEFAULT_FILTERS = {
   riskType: 'All Risks',
-  timeframe: '12 Months',
+  timeframe: '3 Months',
   fund: 'All',
   assetType: 'All',
   status: 'All',
   country: 'All',
   percentage: 'All',
-  viewMode: 'Assets',
+  viewMode: 'Regions',
 };
 
 const App = () => {

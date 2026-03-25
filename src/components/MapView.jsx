@@ -3,7 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import Supercluster from 'supercluster';
 import { STATUS_CONFIG } from '../data/assets';
-import { X, TrendingUp, TrendingDown, ChevronRight, Layers, Compass, MapPin, Loader2 } from 'lucide-react';
+import { X, TrendingUp, TrendingDown, ChevronRight, Layers, Compass, MapPin, Loader2, Star, Globe, Phone, Clock, ExternalLink, User, Quote, AlertCircle, Navigation } from 'lucide-react';
 
 // ── Radar Chart ──────────────────────────────────────────────────────────────
 const RadarChart = ({ data, size = 120, color = '#3b82f6' }) => {
@@ -249,9 +249,13 @@ const MapTooltip = ({ asset, pos, onClose, pinned }) => {
 };
 
 // ── Location Detail Card ──────────────────────────────────────────────────────
-const LocationDetailCard = ({ data, onClose }) => {
+const LocationDetailCard = ({ data, onClose, isRightSidebarOpen }) => {
   if (!data) return null;
-  const { name, address, type, photoUrl, lat, lng, loading, error } = data;
+  const { 
+    name, address, type, photoUrl, lat, lng, loading, error,
+    rating, user_ratings_total, opening_hours, website, formatted_phone_number, url,
+    business_status, price_level, reviews, vicinity, plus_code
+  } = data;
 
   // Determine type badge color
   const typeConfigs = {
@@ -267,22 +271,26 @@ const LocationDetailCard = ({ data, onClose }) => {
                   type?.toLowerCase().includes('tran') || type?.toLowerCase().includes('hub') ? 'transit' : 'default';
   const tCfg = typeConfigs[typeKey];
 
+  // Helper for Plus Code detection
+  const isPlusCode = name?.includes('+') && !name?.includes(' ');
+  const displayTitle = isPlusCode ? "Geographic Coordinate" : name;
+
   return (
     <div style={{
       position: 'fixed',
-      right: 20,
+      right: isRightSidebarOpen ? 360 : 20,
       top: 80,
       bottom: 70,
-      width: 280,
+      width: 340,
       background: 'rgba(7,8,17,0.95)',
-      backdropFilter: 'blur(32px)',
+      backdropFilter: 'blur(40px)',
       border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 16,
+      borderRadius: 24,
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
-      boxShadow: '0 32px 72px rgba(0,0,0,0.85)',
-      animation: 'fadeIn .2s ease',
+      boxShadow: '0 32px 72px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.03)',
+      transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)',
       zIndex: 10000,
     }} className="location-detail-card">
       <style>{`
@@ -293,71 +301,251 @@ const LocationDetailCard = ({ data, onClose }) => {
             left: 0 !important;
             right: 0 !important;
             width: 100% !important;
-            border-radius: 20px 20px 0 0 !important;
-            max-height: 60vh !important;
+            border-radius: 28px 28px 0 0 !important;
+            max-height: 85vh !important;
           }
         }
+        .detail-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255,255,255,0.1) transparent;
+        }
+        .detail-scroll::-webkit-scrollbar {
+          width: 4px;
+        }
+        .detail-scroll::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.1);
+          border-radius: 2px;
+        }
+        .review-card {
+          padding: 12px;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.05);
+          border-radius: 12px;
+          margin-bottom: 12px;
+        }
       `}</style>
-      <div style={{ height: 180, width: '100%', background: '#1e293b', position: 'relative' }}>
+      
+      {/* Header Image Section */}
+      <div style={{ height: 180, width: '100%', background: '#070811', position: 'relative', overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyCenter: 'center' }}>
-            <Loader2 className="animate-spin" size={24} color="#3b82f6" />
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Loader2 className="animate-spin" size={28} color="#3b82f6" />
           </div>
         ) : photoUrl ? (
-          <img src={photoUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <>
+            <img src={photoUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(7,8,17,0.9), transparent 60%)' }} />
+          </>
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-            <MapPin size={32} color="#475569" />
-            <span style={{ fontSize: 10, color: '#475569', fontWeight: 700 }}>PHOTO UNAVAILABLE</span>
+          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+            <MapPin size={40} color="#27272a" />
+            <span style={{ fontSize: 10, color: '#3f3f46', fontWeight: 800, letterSpacing: '0.1em' }}>SENSORS ACTIVE — NO VISUAL DATA</span>
           </div>
         )}
+        
         <button 
           onClick={onClose}
-          style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', borderRadius: '50%', padding: 6, cursor: 'pointer', display: 'flex' }}
+          style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '50%', padding: 8, cursor: 'pointer', display: 'flex', transition: 'all 0.2s' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.4)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.6)'}
         >
-          <X size={16} />
+          <X size={18} />
         </button>
+
+        {!loading && (
+          <div style={{ position: 'absolute', bottom: 16, left: 20, right: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: 6 }}>
+               {type && (
+                <div style={{ 
+                  background: tCfg.bg, color: tCfg.color, 
+                  padding: '4px 10px', borderRadius: 8, 
+                  fontSize: 9, fontWeight: 900, 
+                  textTransform: 'uppercase', letterSpacing: '0.05em',
+                  border: `1px solid ${tCfg.color}44`,
+                  backdropFilter: 'blur(12px)'
+                }}>
+                  {type}
+                </div>
+              )}
+              {price_level !== undefined && (
+                <div style={{ 
+                  background: 'rgba(251, 191, 36, 0.1)', color: '#fbbf24', 
+                  padding: '4px 10px', borderRadius: 8, 
+                  fontSize: 10, fontWeight: 900,
+                  border: `1px solid rgba(251, 191, 36, 0.3)`,
+                  backdropFilter: 'blur(12px)'
+                }}>
+                  {'$'.repeat(price_level)}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      <div style={{ padding: 20, flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {/* Content Section */}
+      <div className="detail-scroll" style={{ padding: '24px 20px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
         {error ? (
-          <div style={{ color: '#ff4d4d', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>
-            {error}
+          <div style={{ color: '#ef4444', fontSize: 13, textAlign: 'center', padding: '40px 20px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: 16, border: '1px solid rgba(239, 68, 68, 0.1)' }}>
+            <AlertCircle size={32} style={{ marginBottom: 12, opacity: 0.5 }} />
+            <div style={{ fontWeight: 600 }}>{error}</div>
           </div>
         ) : loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ height: 20, background: 'rgba(255,255,255,0.05)', borderRadius: 4, width: '80%' }} />
-            <div style={{ height: 40, background: 'rgba(255,255,255,0.03)', borderRadius: 4 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ height: 28, background: 'rgba(255,255,255,0.05)', borderRadius: 6, width: '70%' }} />
+            <div style={{ height: 16, background: 'rgba(255,255,255,0.02)', borderRadius: 4, width: '90%' }} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ height: 40, flex: 1, background: 'rgba(255,255,255,0.02)', borderRadius: 12 }} />
+              <div style={{ height: 40, flex: 1, background: 'rgba(255,255,255,0.02)', borderRadius: 12 }} />
+            </div>
+            <div style={{ height: 100, background: 'rgba(255,255,255,0.01)', borderRadius: 16 }} />
           </div>
         ) : (
           <>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#f8fafc' }}>{name || "Unknown Place"}</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>{address}</div>
-            {type && (
-              <div style={{ 
-                display: 'inline-block', 
-                background: tCfg.bg, 
-                color: tCfg.color, 
-                padding: '3px 8px', 
-                borderRadius: 4, 
-                fontSize: 9, 
-                fontWeight: 800, 
-                alignSelf: 'flex-start',
-                marginTop: 4,
-                textTransform: 'uppercase'
-              }}>
-                {type}
+            {/* Title & Status */}
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#f8fafc', marginBottom: 8, lineHeight: 1.2, letterSpacing: '-0.02em' }}>{displayTitle}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {rating && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(251,191,36,0.1)', padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(251,191,36,0.2)' }}>
+                    <div style={{ display: 'flex', gap: 1 }}>
+                      <Star size={12} fill="#fbbf24" color="#fbbf24" />
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: '#fbbf24' }}>{rating}</span>
+                    <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>({user_ratings_total})</span>
+                  </div>
+                )}
+                {business_status && (
+                  <div style={{ 
+                    fontSize: 10, fontWeight: 900, 
+                    color: business_status === 'OPERATIONAL' ? '#2ecc71' : '#ef4444',
+                    textTransform: 'uppercase', letterSpacing: '0.05em'
+                  }}>
+                    {business_status.replace(/_/g, ' ')}
+                  </div>
+                )}
               </div>
+            </div>
+
+            {/* Address & Quick Info */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 16, background: 'rgba(255,255,255,0.02)', borderRadius: 16, border: '1px solid rgba(255,255,255,0.04)' }}>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <MapPin size={16} color="#3b82f6" style={{ marginTop: 2, flexShrink: 0 }} />
+                <div style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.5 }}>{address}</div>
+              </div>
+              
+              {opening_hours && (
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <Clock size={16} color={opening_hours.open_now ? "#2ecc71" : "#ef4444"} style={{ marginTop: 2, flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: opening_hours.open_now ? "#2ecc71" : "#ef4444" }}>
+                      {opening_hours.open_now ? "Operational Now" : "Currently Closed"}
+                    </div>
+                    {opening_hours.weekday_text && (
+                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                        {opening_hours.weekday_text[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1]}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {website && (
+                <a href={website} target="_blank" rel="noreferrer" style={{ 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  padding: '12px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)',
+                  borderRadius: 12, color: '#3b82f6', fontSize: 11, fontWeight: 900, textDecoration: 'none',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(59,130,246,0.2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(59,130,246,0.1)'; }}>
+                  <Globe size={14} /> WEBSITE
+                </a>
+              )}
+              {formatted_phone_number && (
+                <a href={`tel:${formatted_phone_number}`} style={{ 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  padding: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 12, color: '#f1f5f9', fontSize: 11, fontWeight: 900, textDecoration: 'none',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}>
+                  <Phone size={14} /> CALL
+                </a>
+              )}
+            </div>
+
+            {/* Reviews Section */}
+            {reviews && reviews.length > 0 && (
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 900, color: '#4b5563', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Quote size={10} /> Community Intelligence
+                </div>
+                {reviews.slice(0, 3).map((r, i) => (
+                  <div key={i} className="review-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <User size={10} color="#3b82f6" />
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#f1f5f9' }}>{r.author_name}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 1 }}>
+                        {[...Array(5)].map((_, si) => (
+                          <Star key={si} size={8} fill={si < r.rating ? "#fbbf24" : "transparent"} color={si < r.rating ? "#fbbf24" : "#334155"} />
+                        ))}
+                      </div>
+                    </div>
+                    <p style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.4, margin: 0, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      "{r.text}"
+                    </p>
+                    <div style={{ fontSize: 9, color: '#4b5563', marginTop: 6, textAlign: 'right' }}>{r.relative_time_description}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Google Maps Link */}
+            {url && (
+              <a href={url} target="_blank" rel="noreferrer" style={{ 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                padding: '14px', background: 'linear-gradient(135deg, rgba(46,204,113,0.15), rgba(39,174,96,0.15))', 
+                border: '1px solid rgba(46,204,113,0.25)',
+                borderRadius: 14, color: '#2ecc71', fontSize: 12, fontWeight: 900, textDecoration: 'none',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: '0 4px 12px rgba(46,204,113,0.1)'
+              }}
+              onMouseEnter={e => { 
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.background = 'rgba(46,204,113,0.25)'; 
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(46,204,113,0.2)';
+              }}
+              onMouseLeave={e => { 
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.background = 'rgba(46,204,113,0.15)'; 
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(46,204,113,0.1)';
+              }}>
+                <Navigation size={16} /> VIEW ON GOOGLE MAPS
+              </a>
             )}
           </>
         )}
       </div>
 
+      {/* Footer Coords */}
       {!loading && !error && (
-        <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.04)', background: 'rgba(0,0,0,0.2)' }}>
-          <div style={{ fontSize: 9, color: '#475569', fontWeight: 600, letterSpacing: '0.05em' }}>
-            {lat.toFixed(4)}° N, {lng.toFixed(4)}° E
+        <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.04)', background: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ fontSize: 10, color: '#f8fafc', fontWeight: 800, letterSpacing: '0.02em' }}>{plus_code?.global_code || "COORDINATE LOCK"}</div>
+            <div style={{ fontSize: 9, color: '#475569', fontWeight: 600 }}>
+              {lat.toFixed(6)}° N, {lng.toFixed(6)}° E
+            </div>
           </div>
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#3b82f6', boxShadow: '0 0 15px rgba(59,130,246,0.8)', animation: 'pulseRing 2s infinite' }} />
         </div>
       )}
     </div>
@@ -418,7 +606,19 @@ const COUNTRY_NAME_MAP = {
   'Austria': 'Austria',
 };
 
-const MapView = ({ filteredAssets, viewMode, isSidebarOpen, onToggleSidebar, theme, onThemeChange, focusAsset }) => {
+const MapView = ({ 
+  filteredAssets, 
+  viewMode, 
+  isSidebarOpen, 
+  isRightSidebarOpen,
+  onToggleSidebar, 
+  theme, 
+  onThemeChange, 
+  focusAsset,
+  geoPath,
+  onDrillDown,
+  onStepUp
+}) => {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
@@ -491,35 +691,53 @@ const MapView = ({ filteredAssets, viewMode, isSidebarOpen, onToggleSidebar, the
       let name = "Point of Interest";
       let photoUrl = null;
       let category = types[0] || 'Location';
+      let moreData = {};
 
       if (placeId) {
         // Step 2: Place Details (via Proxy)
-        const detailResp = await fetch(`/google-api/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_address,type,photos&key=${GOOGLE_MAPS_API_KEY}`);
+        // Requesting ALL possible fields for "complete details"
+        const fields = 'name,formatted_address,type,photos,rating,user_ratings_total,opening_hours,website,formatted_phone_number,url,business_status,price_level,reviews,vicinity,plus_code';
+        const detailResp = await fetch(`/google-api/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&key=${GOOGLE_MAPS_API_KEY}`);
         if (!detailResp.ok) throw new Error(`Place Details proxy failed: ${detailResp.status}`);
         const detailData = await detailResp.json();
         
         if (detailData.result) {
-          name = detailData.result.name;
-          category = detailData.result.types?.[0] || category;
+          const res = detailData.result;
+          name = res.name;
+          category = res.types?.[0] || category;
           
-          if (detailData.result.photos && detailData.result.photos.length > 0) {
-            // Step 3: Photo URL (Directly using maps.googleapis.com is fine for <img> src as it doesn't trigger CORS)
-            const photoRef = detailData.result.photos[0].photo_reference;
-            photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photo_reference=${photoRef}&key=${GOOGLE_MAPS_API_KEY}`;
+          if (res.photos && res.photos.length > 0) {
+            const photoRef = res.photos[0].photo_reference;
+            photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoRef}&key=${GOOGLE_MAPS_API_KEY}`;
           }
+
+          moreData = {
+            rating: res.rating,
+            user_ratings_total: res.user_ratings_total,
+            opening_hours: res.opening_hours,
+            website: res.website,
+            formatted_phone_number: res.formatted_phone_number,
+            url: res.url,
+            business_status: res.business_status,
+            price_level: res.price_level,
+            reviews: res.reviews,
+            vicinity: res.vicinity,
+            plus_code: res.plus_code
+          };
         }
       }
 
       // Fallback to Street View if no photo
       if (!photoUrl) {
-        photoUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x300&location=${lat},${lng}&fov=90&key=${GOOGLE_MAPS_API_KEY}`;
+        photoUrl = `https://maps.googleapis.com/maps/api/streetview?size=800x400&location=${lat},${lng}&fov=90&key=${GOOGLE_MAPS_API_KEY}`;
       }
 
       setLocationDetail({
         lng, lat, address, name, 
         type: category.replace(/_/g, ' '), 
         photoUrl, 
-        loading: false 
+        loading: false,
+        ...moreData
       });
 
     } catch (err) {
@@ -530,7 +748,7 @@ const MapView = ({ filteredAssets, viewMode, isSidebarOpen, onToggleSidebar, the
         error: "Could not load details — tap to retry",
         name: "Unknown Location",
         address: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-        photoUrl: `https://maps.googleapis.com/maps/api/streetview?size=600x300&location=${lat},${lng}&fov=90&key=${GOOGLE_MAPS_API_KEY}`
+        photoUrl: `https://maps.googleapis.com/maps/api/streetview?size=800x400&location=${lat},${lng}&fov=90&key=${GOOGLE_MAPS_API_KEY}`
       }));
     }
   };
@@ -1028,6 +1246,7 @@ const MapView = ({ filteredAssets, viewMode, isSidebarOpen, onToggleSidebar, the
             locationMarkerRef.current = null;
           }
         }} 
+        isRightSidebarOpen={isRightSidebarOpen}
       />
 
       {/* Region Tooltip */}
