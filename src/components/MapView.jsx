@@ -3,7 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import Supercluster from 'supercluster';
 import { STATUS_CONFIG } from '../data/assets';
-import { X, TrendingUp, TrendingDown, ChevronRight, Layers, Compass } from 'lucide-react';
+import { X, TrendingUp, TrendingDown, ChevronRight, Layers, Compass, MapPin, Loader2 } from 'lucide-react';
 
 // ── Radar Chart ──────────────────────────────────────────────────────────────
 const RadarChart = ({ data, size = 120, color = '#3b82f6' }) => {
@@ -248,6 +248,122 @@ const MapTooltip = ({ asset, pos, onClose, pinned }) => {
   );
 };
 
+// ── Location Detail Card ──────────────────────────────────────────────────────
+const LocationDetailCard = ({ data, onClose }) => {
+  if (!data) return null;
+  const { name, address, type, photoUrl, lat, lng, loading, error } = data;
+
+  // Determine type badge color
+  const typeConfigs = {
+    'residential': { color: '#2ecc71', bg: 'rgba(46,204,113,0.1)' },
+    'commercial': { color: '#ff9f43', bg: 'rgba(255,159,67,0.1)' },
+    'industrial': { color: '#ff4d4d', bg: 'rgba(255,77,77,0.1)' },
+    'transit': { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
+    'default': { color: '#94a3b8', bg: 'rgba(148,163,184,0.1)' }
+  };
+  const typeKey = type?.toLowerCase().includes('res') ? 'residential' :
+                  type?.toLowerCase().includes('com') ? 'commercial' :
+                  type?.toLowerCase().includes('ind') ? 'industrial' :
+                  type?.toLowerCase().includes('tran') || type?.toLowerCase().includes('hub') ? 'transit' : 'default';
+  const tCfg = typeConfigs[typeKey];
+
+  return (
+    <div style={{
+      position: 'fixed',
+      right: 20,
+      top: 80,
+      bottom: 70,
+      width: 280,
+      background: 'rgba(7,8,17,0.95)',
+      backdropFilter: 'blur(32px)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 16,
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      boxShadow: '0 32px 72px rgba(0,0,0,0.85)',
+      animation: 'fadeIn .2s ease',
+      zIndex: 10000,
+    }} className="location-detail-card">
+      <style>{`
+        @media (max-width: 768px) {
+          .location-detail-card {
+            top: auto !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            border-radius: 20px 20px 0 0 !important;
+            max-height: 60vh !important;
+          }
+        }
+      `}</style>
+      <div style={{ height: 180, width: '100%', background: '#1e293b', position: 'relative' }}>
+        {loading ? (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyCenter: 'center' }}>
+            <Loader2 className="animate-spin" size={24} color="#3b82f6" />
+          </div>
+        ) : photoUrl ? (
+          <img src={photoUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            <MapPin size={32} color="#475569" />
+            <span style={{ fontSize: 10, color: '#475569', fontWeight: 700 }}>PHOTO UNAVAILABLE</span>
+          </div>
+        )}
+        <button 
+          onClick={onClose}
+          style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', borderRadius: '50%', padding: 6, cursor: 'pointer', display: 'flex' }}
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      <div style={{ padding: 20, flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {error ? (
+          <div style={{ color: '#ff4d4d', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>
+            {error}
+          </div>
+        ) : loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ height: 20, background: 'rgba(255,255,255,0.05)', borderRadius: 4, width: '80%' }} />
+            <div style={{ height: 40, background: 'rgba(255,255,255,0.03)', borderRadius: 4 }} />
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#f8fafc' }}>{name || "Unknown Place"}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>{address}</div>
+            {type && (
+              <div style={{ 
+                display: 'inline-block', 
+                background: tCfg.bg, 
+                color: tCfg.color, 
+                padding: '3px 8px', 
+                borderRadius: 4, 
+                fontSize: 9, 
+                fontWeight: 800, 
+                alignSelf: 'flex-start',
+                marginTop: 4,
+                textTransform: 'uppercase'
+              }}>
+                {type}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {!loading && !error && (
+        <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.04)', background: 'rgba(0,0,0,0.2)' }}>
+          <div style={{ fontSize: 9, color: '#475569', fontWeight: 600, letterSpacing: '0.05em' }}>
+            {lat.toFixed(4)}° N, {lng.toFixed(4)}° E
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Cluster Tooltip ───────────────────────────────────────────────────────────
 const ClusterTooltip = ({ cluster, pos, assets }) => {
   if (!cluster) return null;
@@ -285,6 +401,7 @@ const ClusterTooltip = ({ cluster, pos, assets }) => {
 
 // ── Main MapView ───────────────────────────────────────────────────────────────
 const GEOJSON_URL = 'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson';
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 // Map asset country names to GeoJSON feature ADMIN names
 const COUNTRY_NAME_MAP = {
@@ -317,6 +434,9 @@ const MapView = ({ filteredAssets, viewMode, isSidebarOpen, onToggleSidebar, the
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
   const [is3D, setIs3D] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(3.5);
+  const [locationDetail, setLocationDetail] = useState(null);
+  const locationMarkerRef = useRef(null);
+  const lastClickRef = useRef(0);
 
   // Map styles
   const LIGHT_STYLE = 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png';
@@ -347,6 +467,102 @@ const MapView = ({ filteredAssets, viewMode, isSidebarOpen, onToggleSidebar, the
     }
     return '#fff';
   }, [filteredAssets]);
+
+  // ── Fetch Location Details ──
+  const fetchLocationDetails = async (lng, lat) => {
+    setLocationDetail({ lat, lng, loading: true, name: 'Loading...', address: 'Fetching address...' });
+    
+    try {
+      // Step 1: Reverse Geocoding (via Proxy)
+      const geoResp = await fetch(`/google-api/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_MAPS_API_KEY}`);
+      if (!geoResp.ok) throw new Error(`Geocoding proxy failed: ${geoResp.status}`);
+      const geoData = await geoResp.json();
+      
+      let address = "No address found";
+      let placeId = null;
+      let types = [];
+      
+      if (geoData.results && geoData.results.length > 0) {
+        address = geoData.results[0].formatted_address;
+        placeId = geoData.results[0].place_id;
+        types = geoData.results[0].types;
+      }
+
+      let name = "Point of Interest";
+      let photoUrl = null;
+      let category = types[0] || 'Location';
+
+      if (placeId) {
+        // Step 2: Place Details (via Proxy)
+        const detailResp = await fetch(`/google-api/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_address,type,photos&key=${GOOGLE_MAPS_API_KEY}`);
+        if (!detailResp.ok) throw new Error(`Place Details proxy failed: ${detailResp.status}`);
+        const detailData = await detailResp.json();
+        
+        if (detailData.result) {
+          name = detailData.result.name;
+          category = detailData.result.types?.[0] || category;
+          
+          if (detailData.result.photos && detailData.result.photos.length > 0) {
+            // Step 3: Photo URL (Directly using maps.googleapis.com is fine for <img> src as it doesn't trigger CORS)
+            const photoRef = detailData.result.photos[0].photo_reference;
+            photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photo_reference=${photoRef}&key=${GOOGLE_MAPS_API_KEY}`;
+          }
+        }
+      }
+
+      // Fallback to Street View if no photo
+      if (!photoUrl) {
+        photoUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x300&location=${lat},${lng}&fov=90&key=${GOOGLE_MAPS_API_KEY}`;
+      }
+
+      setLocationDetail({
+        lng, lat, address, name, 
+        type: category.replace(/_/g, ' '), 
+        photoUrl, 
+        loading: false 
+      });
+
+    } catch (err) {
+      console.error("Geocoding error:", err);
+      setLocationDetail(prev => ({ 
+        ...prev, 
+        loading: false, 
+        error: "Could not load details — tap to retry",
+        name: "Unknown Location",
+        address: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+        photoUrl: `https://maps.googleapis.com/maps/api/streetview?size=600x300&location=${lat},${lng}&fov=90&key=${GOOGLE_MAPS_API_KEY}`
+      }));
+    }
+  };
+
+  const handleMapClick = useCallback((e) => {
+    const now = Date.now();
+    if (now - lastClickRef.current < 200) return;
+    lastClickRef.current = now;
+
+    // Check if we clicked on a city/region mode layer or if tooltip is open
+    if (viewMode === 'Regions') return;
+
+    const { lng, lat } = e.lngLat;
+    
+    // Close other tooltips
+    setPinnedAssetId(null);
+    setTooltip(null);
+    setClusterTooltip(null);
+
+    // Drop Pin
+    const map = mapRef.current;
+    if (locationMarkerRef.current) locationMarkerRef.current.remove();
+    
+    const el = document.createElement('div');
+    el.innerHTML = `<div style="width:20px; height:20px; background:#3b82f6; border:3px solid #fff; border-radius:50%; box-shadow:0 0 20px rgba(59,130,246,0.6);"></div>`;
+    
+    locationMarkerRef.current = new maplibregl.Marker({ element: el, anchor: 'center' })
+      .setLngLat([lng, lat])
+      .addTo(map);
+
+    fetchLocationDetails(lng, lat);
+  }, [viewMode]);
 
   // Keep refs updated for listeners
   useEffect(() => {
@@ -682,9 +898,7 @@ const MapView = ({ filteredAssets, viewMode, isSidebarOpen, onToggleSidebar, the
       attributionControl: false,
     });
 
-    map.on('click', () => {
-      setPinnedAssetId(null);
-    });
+    map.on('click', handleMapClick);
 
     mapRef.current = map;
 
@@ -803,6 +1017,18 @@ const MapView = ({ filteredAssets, viewMode, isSidebarOpen, onToggleSidebar, the
         pinned={!!pinnedAssetId}
       />
       <ClusterTooltip cluster={clusterTooltip} pos={hoverPos} assets={filteredAssets} />
+
+      {/* Location Detail Card */}
+      <LocationDetailCard 
+        data={locationDetail} 
+        onClose={() => {
+          setLocationDetail(null);
+          if (locationMarkerRef.current) {
+            locationMarkerRef.current.remove();
+            locationMarkerRef.current = null;
+          }
+        }} 
+      />
 
       {/* Region Tooltip */}
       {regionTooltip && (
