@@ -118,6 +118,21 @@ const ControlBar = ({ filters, onFilterChange, geoPath, onGeoSelect, onAnalyze }
 
         <div style={{ height: 16, width: 1, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
 
+        {/* Country filter */}
+        <FilterDropdown
+          label="Country"
+          value={geoPath.length >= 2 ? geoPath[1] : 'All'}
+          options={COUNTRIES}
+          onChange={v => {
+            if (v === 'All') {
+              onGeoSelect(GEO_LEVELS[0], null);
+            } else {
+              onGeoSelect(GEO_LEVELS[0], v);
+            }
+          }}
+          highlighted={geoPath.length >= 2}
+        />
+
         {/* Spacer */}
         <div style={{ flex: 1 }} />
 

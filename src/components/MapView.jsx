@@ -606,6 +606,20 @@ const COUNTRY_NAME_MAP = {
   'Austria': 'Austria',
 };
 
+// Color palette for sub-region drill-down outlines (by depth)
+const DRILL_OUTLINE_COLORS = [
+  '#6366f1', // L1 country (indigo)
+  '#8b5cf6', // L2 state (violet)
+  '#a855f7', // L3 admin region (purple)
+  '#ec4899', // L4 district (pink)
+  '#f43f5e', // L5 municipality (rose)
+  '#ef4444', // L6 borough (red)
+  '#f97316', // L7 locality (orange)
+  '#eab308', // L8 street (yellow)
+  '#22c55e', // L9 house (green)
+  '#06b6d4', // L10 postal (cyan)
+];
+
 // Helper to resolve target node from geoPath
 const resolveLatestNode = (path) => {
   if (!path || path.length <= 1) return null;
@@ -687,6 +701,90 @@ const MapView = ({
       const highlightSource = map.getSource('region-highlight');
       if (highlightSource) {
         highlightSource.setData({ type: 'FeatureCollection', features: [] });
+      }
+    }
+
+    // ── Sub-region drill-down outlines ──
+    // Remove old drill outline layers/sources
+    for (let d = 1; d <= 10; d++) {
+      if (map.getLayer(`drill-outline-fill-${d}`)) map.removeLayer(`drill-outline-fill-${d}`);
+      if (map.getLayer(`drill-outline-border-${d}`)) map.removeLayer(`drill-outline-border-${d}`);
+      if (map.getLayer(`drill-outline-label-${d}`)) map.removeLayer(`drill-outline-label-${d}`);
+      if (map.getSource(`drill-outline-${d}`)) map.removeSource(`drill-outline-${d}`);
+    }
+
+    // Add outlines for each drill level (L2+)
+    if (geoPath.length >= 3) {
+      let current = REGIONAL_DATA;
+      for (let i = 1; i < geoPath.length; i++) {
+        const name = geoPath[i];
+        const node = current[name];
+        if (!node || !node.center) break;
+
+        // Only draw for L2+ (state and below)
+        if (i >= 2) {
+          const depth = i;
+          const color = DRILL_OUTLINE_COLORS[Math.min(depth - 1, DRILL_OUTLINE_COLORS.length - 1)];
+          const zoomLevel = node.zoom || 11;
+          // Radius for the outline circle varies by zoom level
+          const radiusKm = Math.max(0.5, 120 / Math.pow(2, zoomLevel - 4));
+          const radiusDeg = radiusKm / 111;
+          
+          // Create a circle polygon approximation
+          const circleCoords = [];
+          for (let a = 0; a <= 64; a++) {
+            const angle = (a / 64) * 2 * Math.PI;
+            circleCoords.push([
+              node.center[0] + radiusDeg * Math.cos(angle),
+              node.center[1] + radiusDeg * Math.sin(angle) * 0.75, // slightly elliptical
+            ]);
+          }
+
+          const sourceId = `drill-outline-${depth}`;
+          const geojsonData = {
+            type: 'FeatureCollection',
+            features: [{
+              type: 'Feature',
+              properties: { name, depth },
+              geometry: { type: 'Polygon', coordinates: [circleCoords] },
+            }]
+          };
+
+          if (!map.getSource(sourceId)) {
+            map.addSource(sourceId, { type: 'geojson', data: geojsonData });
+          } else {
+            map.getSource(sourceId).setData(geojsonData);
+          }
+
+          // Fill layer (very subtle)
+          if (!map.getLayer(`drill-outline-fill-${depth}`)) {
+            map.addLayer({
+              id: `drill-outline-fill-${depth}`,
+              type: 'fill',
+              source: sourceId,
+              paint: {
+                'fill-color': color,
+                'fill-opacity': i === geoPath.length - 1 ? 0.12 : 0.04,
+              },
+            });
+          }
+
+          // Border outline layer
+          if (!map.getLayer(`drill-outline-border-${depth}`)) {
+            map.addLayer({
+              id: `drill-outline-border-${depth}`,
+              type: 'line',
+              source: sourceId,
+              paint: {
+                'line-color': color,
+                'line-width': i === geoPath.length - 1 ? 3 : 1.5,
+                'line-opacity': i === geoPath.length - 1 ? 0.9 : 0.4,
+                'line-dasharray': i === geoPath.length - 1 ? [1] : [4, 3],
+              },
+            });
+          }
+        }
+        current = node.children || {};
       }
     }
     
@@ -957,11 +1055,17 @@ const MapView = ({
       });
 
       // Add/update GeoJSON fill layer
+      const selectedCountry = geoPathRef.current.length >= 2 ? geoPathRef.current[1] : null;
+      const selectedGeoName = selectedCountry ? (COUNTRY_NAME_MAP[selectedCountry] || selectedCountry) : null;
+
       const addOrUpdateRegionLayer = (geojson) => {
-        // Filter to only European countries that have assets
+        // Filter features: if a country is selected show only that country, otherwise show all with assets
         const assetCountryNames = Object.keys(countryRiskMap);
         const filteredFeatures = geojson.features.filter(f => {
           const name = f.properties.ADMIN || f.properties.name;
+          if (selectedGeoName) {
+            return name === selectedGeoName;
+          }
           return assetCountryNames.includes(name);
         });
 
@@ -979,8 +1083,17 @@ const MapView = ({
 
         const filteredGeoJson = { type: 'FeatureCollection', features: filteredFeatures };
 
+        // Determine outline color: stronger when a single country is selected
+        const outlineColor = selectedGeoName ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)';
+        const outlineWidth = selectedGeoName ? 2.5 : 1.5;
+
         if (map.getSource('region-risk')) {
           map.getSource('region-risk').setData(filteredGeoJson);
+          // Update outline paint for emphasis
+          if (map.getLayer('region-risk-outline')) {
+            map.setPaintProperty('region-risk-outline', 'line-color', outlineColor);
+            map.setPaintProperty('region-risk-outline', 'line-width', outlineWidth);
+          }
         } else {
           map.addSource('region-risk', { type: 'geojson', data: filteredGeoJson });
           map.addLayer({
@@ -997,8 +1110,8 @@ const MapView = ({
             type: 'line',
             source: 'region-risk',
             paint: {
-              'line-color': 'rgba(255,255,255,0.2)',
-              'line-width': 1.5,
+              'line-color': outlineColor,
+              'line-width': outlineWidth,
             },
           });
         }
@@ -1008,7 +1121,12 @@ const MapView = ({
         map.setLayoutProperty('region-risk-outline', 'visibility', 'visible');
 
         // Add labels for each country with assets
-        Object.entries(countryRiskMap).forEach(([geoName, data]) => {
+        // If a country is selected, only show that country's label
+        const labelsToShow = selectedGeoName
+          ? Object.entries(countryRiskMap).filter(([geoName]) => geoName === selectedGeoName)
+          : Object.entries(countryRiskMap);
+
+        labelsToShow.forEach(([geoName, data]) => {
           const avgLng = data.coords.reduce((s, c) => s + c[0], 0) / data.coords.length;
           const avgLat = data.coords.reduce((s, c) => s + c[1], 0) / data.coords.length;
           const avg = Math.round(data.scores.reduce((s, v) => s + v, 0) / data.scores.length * 10) / 10;
@@ -1036,14 +1154,10 @@ const MapView = ({
           el.addEventListener('mouseenter', (e) => {
             el.querySelector('.region-label').style.transform = 'scale(1.05)';
             el.querySelector('.region-label').style.boxShadow = `0 8px 32px rgba(0,0,0,0.6), 0 0 30px ${color}25`;
-            // Redundant tooltip removed as per user feedback
-            // setRegionTooltip({ name: data.assetCountry, count: data.count, avg, color });
-            // setHoverPos({ x: e.clientX, y: e.clientY });
           });
           el.addEventListener('mouseleave', () => {
             el.querySelector('.region-label').style.transform = 'scale(1)';
             el.querySelector('.region-label').style.boxShadow = `0 4px 24px rgba(0,0,0,0.5), 0 0 20px ${color}15`;
-            // setRegionTooltip(null);
           });
           el.addEventListener('click', () => {
             map.flyTo({ center: [avgLng, avgLat], zoom: 6, duration: 1500 });
@@ -1202,7 +1316,7 @@ const MapView = ({
         .addTo(map);
       markersRef.current.push(marker);
     });
-  }, [getClusterColor, viewMode, pinnedAssetId]);
+  }, [getClusterColor, viewMode, pinnedAssetId, geoPath]);
 
   // Keep renderMarkersRef updated
   useEffect(() => {

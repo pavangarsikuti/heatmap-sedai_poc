@@ -256,8 +256,8 @@ const App = () => {
                   onAnalyze={handleAnalyze}
                 />
 
-                {/* ── Floating Geo Filter Card ── */}
-                {filters.viewMode === 'Regions' && geoPath.length > 0 && (
+                {/* ── Floating Geo Filter Card (only after country selected) ── */}
+                {filters.viewMode === 'Regions' && geoPath.length >= 2 && (
                   <GeoFilterCard 
                     geoPath={geoPath} 
                     onGeoSelect={handleGeoSelect} 
