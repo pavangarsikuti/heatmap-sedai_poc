@@ -16,14 +16,18 @@ const getStatus = (score) => {
   return 'SAFE';
 };
 
-// ── Geographic Level Labels ──────────────────────────────────────────────────
+// ── Geographic Level Labels (L1-L10) ──────────────────────────────────────────
 export const GEO_LEVEL_LABELS = {
-  1: { tag: 'L1', name: 'Country', desc: 'Strategic Allocation' },
-  2: { tag: 'L2', name: 'Region', desc: 'State/Canton Analysis' },
-  3: { tag: 'L3', name: 'City', desc: 'Urban Macro-Market' },
-  4: { tag: 'L4', name: 'District', desc: 'Neighborhood Risk Drivers' },
-  5: { tag: 'L5', name: 'Locality', desc: 'Micro-Location Specificity' },
-  6: { tag: 'L6', name: 'Micro Market', desc: 'Asset-Specific Surroundings' },
+  1:  { tag: 'L1',  name: 'Country',             desc: 'Strategic Allocation' },
+  2:  { tag: 'L2',  name: 'State',               desc: 'Regional Macro-Analysis' },
+  3:  { tag: 'L3',  name: 'Admin Region',        desc: 'Administrative Oversight' },
+  4:  { tag: 'L4',  name: 'District',            desc: 'Sub-Regional Yield Drivers' },
+  5:  { tag: 'L5',  name: 'Municipality',        desc: 'Urban Market Dynamics' },
+  6:  { tag: 'L6',  name: 'Borough',             desc: 'Subdivision Specificity' },
+  7:  { tag: 'L7',  name: 'Locality',            desc: 'Neighborhood Risk Profile' },
+  8:  { tag: 'L8',  name: 'Street',              desc: 'Micro-Location Precision' },
+  9:  { tag: 'L9',  name: 'House Number',        desc: 'Asset-Specific Surroundings' },
+  10: { tag: 'L10', name: 'Postal Code',         desc: 'Granular Demographic Filter' },
 };
 
 // ── News Headlines Pool ──────────────────────────────────────────────────────

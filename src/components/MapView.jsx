@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import Supercluster from 'supercluster';
-import { STATUS_CONFIG } from '../data/assets';
+import { STATUS_CONFIG, REGIONAL_DATA } from '../data/assets';
 import { X, TrendingUp, TrendingDown, ChevronRight, Layers, Compass, MapPin, Loader2, Star, Globe, Phone, Clock, ExternalLink, User, Quote, AlertCircle, Navigation } from 'lucide-react';
 
 // ── Radar Chart ──────────────────────────────────────────────────────────────
@@ -606,6 +606,23 @@ const COUNTRY_NAME_MAP = {
   'Austria': 'Austria',
 };
 
+// Helper to resolve target node from geoPath
+const resolveLatestNode = (path) => {
+  if (!path || path.length <= 1) return null;
+  let current = REGIONAL_DATA;
+  let target = null;
+  for (let i = 1; i < path.length; i++) {
+    const name = path[i];
+    if (current && current[name]) {
+      target = current[name];
+      current = target.children;
+    } else {
+      break;
+    }
+  }
+  return target;
+};
+
 const MapView = ({ 
   filteredAssets, 
   viewMode, 
@@ -637,6 +654,91 @@ const MapView = ({
   const [locationDetail, setLocationDetail] = useState(null);
   const locationMarkerRef = useRef(null);
   const lastClickRef = useRef(0);
+  const geoPathRef = useRef(geoPath);
+
+  // ── Auto-Zoom & Highlighting Logic ──
+  useEffect(() => {
+    if (!mapRef.current || !geoPath) return;
+    const map = mapRef.current;
+
+    const targetNode = resolveLatestNode(geoPath);
+    if (targetNode && targetNode.center) {
+      map.flyTo({
+        center: targetNode.center,
+        zoom: targetNode.zoom || 11,
+        essential: true,
+        duration: 2500,
+        pitch: targetNode.zoom > 15 ? 45 : 0,
+      });
+
+      // Update highlight layer
+      const highlightSource = map.getSource('region-highlight');
+      if (highlightSource) {
+        highlightSource.setData({
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: targetNode.center }
+          }]
+        });
+      }
+    } else if (geoPath.length === 1 && geoPath[0] === 'Europe') {
+      map.flyTo({ center: [10, 50], zoom: 3.8, essential: true });
+      const highlightSource = map.getSource('region-highlight');
+      if (highlightSource) {
+        highlightSource.setData({ type: 'FeatureCollection', features: [] });
+      }
+    }
+    
+    geoPathRef.current = geoPath;
+  }, [geoPath]);
+
+  // Initial map setup for highlighting
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const m = mapRef.current;
+
+    const setupLayers = () => {
+      if (!m.getSource('region-highlight')) {
+        m.addSource('region-highlight', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] }
+        });
+
+        m.addLayer({
+          id: 'region-highlight-glow',
+          type: 'circle',
+          source: 'region-highlight',
+          paint: {
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 50, 18, 500],
+            'circle-color': '#6366f1',
+            'circle-opacity': 0.15,
+            'circle-blur': 1,
+          }
+        });
+
+        m.addLayer({
+          id: 'region-highlight-ring',
+          type: 'circle',
+          source: 'region-highlight',
+          paint: {
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 10, 18, 100],
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#818cf8',
+            'circle-stroke-opacity': 0.8,
+            'circle-color': 'transparent'
+          }
+        });
+      }
+    };
+
+    if (m.isStyleLoaded()) setupLayers();
+    else m.on('load', setupLayers);
+
+    return () => {
+      if (m) m.off('load', setupLayers);
+    };
+  }, []);
 
   // Map styles
   const LIGHT_STYLE = 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png';

@@ -334,135 +334,88 @@ export const STATUS_CONFIG = {
   SAFE:     { color: '#2ecc71', bg: 'rgba(46,204,113,0.15)', label: 'SAFE' },
 };
 
-// ── Geographic Level Constants ────────────────────────────────────────────────
-// L1: Country | L2: Region | L3: City | L4: District | L5: Locality | L6: Micro Market
-export const GEO_LEVELS = ['country', 'region', 'city', 'district', 'locality', 'microMarket'];
+// ── Geographic Level Constants (L1-L10) ──────────────────────────────────────
+export const GEO_LEVELS = [
+  'country',       // L1: Land
+  'state',         // L2: Bundesland
+  'adminRegion',   // L3: Regierungsbezirk
+  'district',      // L4: Landkreis
+  'municipality',  // L5: Gemeinde
+  'borough',       // L6: Stadtteil
+  'locality',      // L7: Quartier
+  'street',        // L8: Straße
+  'houseNumber',   // L9: Hausnummer
+  'postalCode',    // L10: PLZ
+];
 
-// ── Regional Hierarchy (L1→L6) ───────────────────────────────────────────────
-// Priority: Germany + Switzerland (full depth), others (L1-L3 stubs)
+// ── Regional Hierarchy (Recursive Structure) ─────────────────────────────────
+// Each node: { name, center: [lng, lat], zoom, children: { name: node } }
 export const REGIONAL_DATA = {
-  // ════════════════════════════════════════════════════════════════════════════
-  // GERMANY — Full L1→L6
-  // ════════════════════════════════════════════════════════════════════════════
   'Germany': {
-    center: [10.4515, 51.1657], zoom: 5,
-    regions: {
+    name: 'Germany', center: [10.4515, 51.1657], zoom: 5.5,
+    children: {
       'Bavaria': {
-        center: [11.5580, 48.3953], zoom: 7,
-        cities: {
-          'Munich': {
-            center: [11.5820, 48.1351], zoom: 10,
-            districts: {
-              'Altstadt-Lehel': {
-                center: [11.5750, 48.1380], zoom: 13,
-                localities: {
-                  'Altstadt': {
-                    center: [11.5755, 48.1370], zoom: 15,
-                    microMarkets: {
-                      'Marienplatz Area': { center: [11.5760, 48.1374], zoom: 17 },
-                      'Viktualienmarkt': { center: [11.5768, 48.1350], zoom: 17 },
-                    }
-                  },
-                  'Lehel': {
-                    center: [11.5870, 48.1410], zoom: 15,
-                    microMarkets: {
-                      'Eisbach Quarter': { center: [11.5880, 48.1430], zoom: 17 },
-                      'St-Anna-Strasse': { center: [11.5850, 48.1400], zoom: 17 },
-                    }
-                  }
-                }
-              },
-              'Maxvorstadt': {
-                center: [11.5680, 48.1520], zoom: 13,
-                localities: {
-                  'Königsplatz': {
-                    center: [11.5650, 48.1460], zoom: 15,
-                    microMarkets: {
-                      'Museum Quarter': { center: [11.5640, 48.1470], zoom: 17 },
-                      'Brienner Strasse': { center: [11.5700, 48.1450], zoom: 17 },
-                    }
-                  },
-                  'Universität': {
-                    center: [11.5800, 48.1510], zoom: 15,
-                    microMarkets: {
-                      'Ludwigstrasse': { center: [11.5790, 48.1520], zoom: 17 },
-                      'Schellingstrasse': { center: [11.5730, 48.1530], zoom: 17 },
-                    }
-                  }
-                }
-              },
-              'Schwabing-West': {
-                center: [11.5600, 48.1600], zoom: 13,
-                localities: {
-                  'Hohenzollernplatz': {
-                    center: [11.5620, 48.1620], zoom: 15,
-                    microMarkets: {
-                      'Leopoldstrasse North': { center: [11.5640, 48.1640], zoom: 17 },
+        name: 'Bavaria', center: [11.5580, 48.3953], zoom: 7.5,
+        children: {
+          'Upper Bavaria': {
+            name: 'Upper Bavaria', center: [11.5820, 48.1351], zoom: 8.5,
+            children: {
+              'Munich': {
+                name: 'Munich', center: [11.5820, 48.1351], zoom: 11,
+                children: {
+                  'Munich City': {
+                    name: 'Munich City', center: [11.5750, 48.1380], zoom: 12,
+                    children: {
+                      'Schwabing': {
+                        name: 'Schwabing', center: [11.5820, 48.1630], zoom: 14,
+                        children: {
+                          'Schwabing-West': {
+                            name: 'Schwabing-West', center: [11.5680, 48.1650], zoom: 15,
+                            children: {
+                              'Leopoldstraße': {
+                                name: 'Leopoldstraße', center: [11.5850, 48.1600], zoom: 16.5,
+                                children: {
+                                  'Hausnummer 10': {
+                                    name: 'Hausnummer 10', center: [11.5855, 48.1605], zoom: 18,
+                                    children: {
+                                      '80802': { name: '80802', center: [11.5855, 48.1605], zoom: 18.5 }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
               }
-            }
-          },
-          'Nuremberg': {
-            center: [11.0767, 49.4521], zoom: 11,
-            districts: {
-              'Altstadt': { center: [11.0770, 49.4540], zoom: 14, localities: {} },
-              'St. Johannis': { center: [11.0600, 49.4570], zoom: 14, localities: {} },
             }
           }
         }
       },
       'Berlin': {
-        center: [13.4050, 52.5200], zoom: 8,
-        cities: {
-          'Berlin': {
-            center: [13.4050, 52.5200], zoom: 11,
-            districts: {
+        name: 'Berlin', center: [13.4050, 52.5200], zoom: 11,
+        children: {
+          'Berlin-Mitte': {
+            name: 'Berlin-Mitte', center: [13.3890, 52.5200], zoom: 13,
+            children: {
               'Mitte': {
-                center: [13.3890, 52.5200], zoom: 13,
-                localities: {
-                  'Alexanderplatz': {
-                    center: [13.4115, 52.5219], zoom: 15,
-                    microMarkets: {
-                      'Alexanderstrasse': { center: [13.4130, 52.5230], zoom: 17 },
-                      'Karl-Marx-Allee': { center: [13.4200, 52.5200], zoom: 17 },
-                    }
-                  },
-                  'Potsdamer Platz': {
-                    center: [13.3760, 52.5096], zoom: 15,
-                    microMarkets: {
-                      'Sony Center': { center: [13.3740, 52.5100], zoom: 17 },
-                      'Leipziger Platz': { center: [13.3810, 52.5110], zoom: 17 },
-                    }
-                  },
-                  'Friedrichstrasse': {
-                    center: [13.3880, 52.5200], zoom: 15,
-                    microMarkets: {
-                      'Checkpoint Charlie': { center: [13.3905, 52.5075], zoom: 17 },
-                    }
-                  }
-                }
-              },
-              'Charlottenburg': {
-                center: [13.2954, 52.5186], zoom: 13,
-                localities: {
-                  'Kurfürstendamm': {
-                    center: [13.3280, 52.5040], zoom: 15,
-                    microMarkets: {
-                      'Breitscheidplatz': { center: [13.3350, 52.5050], zoom: 17 },
-                      'Savignyplatz': { center: [13.3210, 52.5050], zoom: 17 },
-                    }
-                  }
-                }
-              },
-              'Kreuzberg': {
-                center: [13.4000, 52.4980], zoom: 13,
-                localities: {
-                  'Bergmannkiez': {
-                    center: [13.3940, 52.4890], zoom: 15,
-                    microMarkets: {
-                      'Bergmannstrasse': { center: [13.3930, 52.4880], zoom: 17 },
+                name: 'Mitte', center: [13.3890, 52.5200], zoom: 14,
+                children: {
+                  'Alexanderplatz Area': {
+                    name: 'Alexanderplatz Area', center: [13.4115, 52.5219], zoom: 16,
+                    children: {
+                      'Alexanderstraße': {
+                        name: 'Alexanderstraße', center: [13.4130, 52.5230], zoom: 17,
+                        children: {
+                          '1': {
+                            name: '1', center: [13.4132, 52.5232], zoom: 18,
+                            children: { '10178': { name: '10178', center: [13.4132, 52.5232], zoom: 18.5 } }
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -470,296 +423,359 @@ export const REGIONAL_DATA = {
             }
           }
         }
-      },
-      'North Rhine-Westphalia': {
-        center: [7.6616, 51.4332], zoom: 7,
-        cities: {
-          'Düsseldorf': {
-            center: [6.7735, 51.2277], zoom: 11,
-            districts: {
-              'Medienhafen': { center: [6.7600, 51.2170], zoom: 14, localities: {} },
-              'Königsallee': { center: [6.7800, 51.2240], zoom: 14, localities: {} },
-            }
-          },
-          'Cologne': {
-            center: [6.9603, 50.9375], zoom: 11,
-            districts: {
-              'Innenstadt': { center: [6.9570, 50.9380], zoom: 14, localities: {} },
-            }
-          }
-        }
-      },
-      'Hamburg': {
-        center: [9.9937, 53.5511], zoom: 9,
-        cities: {
-          'Hamburg': {
-            center: [9.9937, 53.5511], zoom: 11,
-            districts: {
-              'HafenCity': { center: [10.0020, 53.5410], zoom: 14, localities: {} },
-              'Eppendorf': { center: [9.9830, 53.5870], zoom: 14, localities: {} },
-            }
-          }
-        }
-      },
-      'Hesse': {
-        center: [8.6821, 50.1109], zoom: 8,
-        cities: {
-          'Frankfurt': {
-            center: [8.6821, 50.1109], zoom: 11,
-            districts: {
-              'Bankenviertel': { center: [8.6700, 50.1130], zoom: 14, localities: {} },
-              'Westend': { center: [8.6600, 50.1200], zoom: 14, localities: {} },
-            }
-          }
-        }
       }
     }
   },
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // SWITZERLAND — Full L1→L6
-  // ════════════════════════════════════════════════════════════════════════════
   'Switzerland': {
-    center: [8.2275, 46.8182], zoom: 7,
-    regions: {
+    name: 'Switzerland', center: [8.2275, 46.8182], zoom: 7.5,
+    children: {
       'Zürich Canton': {
-        center: [8.5417, 47.3769], zoom: 9,
-        cities: {
-          'Zürich': {
-            center: [8.5417, 47.3769], zoom: 12,
-            districts: {
-              'Kreis 1 (Altstadt)': {
-                center: [8.5400, 47.3720], zoom: 14,
-                localities: {
-                  'Lindenhof': {
-                    center: [8.5390, 47.3730], zoom: 16,
-                    microMarkets: {
-                      'Bahnhofstrasse North': { center: [8.5391, 47.3740], zoom: 17 },
-                      'Paradeplatz': { center: [8.5392, 47.3710], zoom: 17 },
-                    }
-                  },
-                  'Rathaus': {
-                    center: [8.5430, 47.3710], zoom: 16,
-                    microMarkets: {
-                      'Niederdorf': { center: [8.5440, 47.3720], zoom: 17 },
-                    }
-                  }
-                }
-              },
-              'Kreis 2 (Enge)': {
-                center: [8.5310, 47.3620], zoom: 14,
-                localities: {
-                  'Enge': {
-                    center: [8.5310, 47.3600], zoom: 16,
-                    microMarkets: {
-                      'Bürkliplatz': { center: [8.5380, 47.3660], zoom: 17 },
-                    }
-                  }
-                }
-              },
-              'Kreis 5 (Industriequartier)': {
-                center: [8.5200, 47.3870], zoom: 14,
-                localities: {
-                  'Escher Wyss': {
-                    center: [8.5150, 47.3900], zoom: 16,
-                    microMarkets: {
-                      'Prime Tower Area': { center: [8.5160, 47.3910], zoom: 17 },
-                      'Turbinenplatz': { center: [8.5190, 47.3890], zoom: 17 },
-                    }
-                  },
-                  'Gewerbeschule': {
-                    center: [8.5260, 47.3840], zoom: 16,
-                    microMarkets: {
-                      'Langstrasse': { center: [8.5270, 47.3820], zoom: 17 },
-                    }
-                  }
-                }
-              },
-              'Kreis 8 (Riesbach)': {
-                center: [8.5560, 47.3550], zoom: 14,
-                localities: {
-                  'Seefeld': {
-                    center: [8.5540, 47.3570], zoom: 16,
-                    microMarkets: {
-                      'Seefeldstrasse': { center: [8.5530, 47.3580], zoom: 17 },
+        name: 'Zürich Canton', center: [8.5417, 47.3769], zoom: 9.5,
+        children: {
+          'Zürich Region': {
+            name: 'Zürich Region', center: [8.5417, 47.3769], zoom: 11,
+            children: {
+              'Zürich City': {
+                name: 'Zürich City', center: [8.5417, 47.3769], zoom: 12.5,
+                children: {
+                  'District 1': {
+                    name: 'District 1', center: [8.5400, 47.3720], zoom: 14.5,
+                    children: {
+                      'Altstadt': {
+                        name: 'Altstadt', center: [8.5400, 47.3720], zoom: 16,
+                        children: {
+                          'Lindenhof': {
+                            name: 'Lindenhof', center: [8.5390, 47.3730], zoom: 17,
+                            children: {
+                              'Bahnhofstrasse': {
+                                name: 'Bahnhofstrasse', center: [8.5391, 47.3740], zoom: 17.5,
+                                children: {
+                                  '70': {
+                                    name: '70', center: [8.5392, 47.3742], zoom: 18.5,
+                                    children: { '8001': { name: '8001', center: [8.5392, 47.3742], zoom: 19 } }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
               }
             }
-          },
-          'Winterthur': {
-            center: [8.7295, 47.4985], zoom: 12,
-            districts: {
-              'Altstadt': { center: [8.7290, 47.4990], zoom: 14, localities: {} },
-              'Töss': { center: [8.7050, 47.4950], zoom: 14, localities: {} },
-            }
           }
-        }
-      },
-      'Geneva Canton': {
-        center: [6.1432, 46.2044], zoom: 10,
-        cities: {
-          'Geneva': {
-            center: [6.1432, 46.2044], zoom: 12,
-            districts: {
-              'Eaux-Vives': {
-                center: [6.1600, 46.2020], zoom: 14,
-                localities: {
-                  'Rue du Lac': {
-                    center: [6.1580, 46.2030], zoom: 16,
-                    microMarkets: {
-                      'Jet d\'Eau Quarter': { center: [6.1560, 46.2070], zoom: 17 },
-                    }
-                  }
-                }
-              },
-              'Plainpalais': { center: [6.1410, 46.1990], zoom: 14, localities: {} },
-              'Nations': { center: [6.1350, 46.2230], zoom: 14, localities: {} },
-            }
-          }
-        }
-      },
-      'Bern Canton': {
-        center: [7.4474, 46.9480], zoom: 10,
-        cities: {
-          'Bern': {
-            center: [7.4474, 46.9480], zoom: 12,
-            districts: {
-              'Altstadt': { center: [7.4480, 46.9480], zoom: 14, localities: {} },
-              'Kirchenfeld': { center: [7.4530, 46.9430], zoom: 14, localities: {} },
-            }
-          }
-        }
-      },
-      'Basel-Stadt': {
-        center: [7.5886, 47.5596], zoom: 11,
-        cities: {
-          'Basel': {
-            center: [7.5886, 47.5596], zoom: 12,
-            districts: {
-              'Grossbasel': { center: [7.5850, 47.5550], zoom: 14, localities: {} },
-              'Kleinbasel': { center: [7.5950, 47.5650], zoom: 14, localities: {} },
-            }
-          }
-        }
-      }
-    }
-  },
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // POLAND — L1→L4
-  // ════════════════════════════════════════════════════════════════════════════
-  'Poland': {
-    center: [19.1451, 51.9194], zoom: 6,
-    regions: {
-      'Masovian': {
-        center: [21.0122, 52.2297], zoom: 8,
-        cities: {
-          'Warsaw': {
-            center: [21.0122, 52.2297], zoom: 11,
-            districts: {
-              'Mokotów': { center: [21.0100, 52.1900], zoom: 13, localities: {} },
-              'Służewiec': { center: [20.9904, 52.1797], zoom: 15, localities: {} },
-              'Wola': { center: [20.9700, 52.2350], zoom: 13, localities: {} },
-            }
-          }
-        }
-      }
-    }
-  },
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // OTHER COUNTRIES — L1→L3 stubs (expandable later)
-  // ════════════════════════════════════════════════════════════════════════════
-  'France': {
-    center: [2.3522, 46.6034], zoom: 5,
-    regions: {
-      'Île-de-France': {
-        center: [2.3522, 48.8566], zoom: 9,
-        cities: {
-          'Paris': { center: [2.3522, 48.8566], zoom: 12, districts: {} },
         }
       }
     }
   },
   'UK': {
-    center: [-1.2578, 52.3555], zoom: 5,
-    regions: {
+    name: 'UK', center: [-1.1743, 52.3555], zoom: 6,
+    children: {
       'Greater London': {
-        center: [-0.1276, 51.5074], zoom: 9,
-        cities: {
-          'London': { center: [-0.1276, 51.5074], zoom: 12, districts: {} },
+        name: 'Greater London', center: [-0.1276, 51.5074], zoom: 10,
+        children: {
+          'Westminster': {
+            name: 'Westminster', center: [-0.1372, 51.4975], zoom: 13,
+            children: {
+              'Marylebone': {
+                name: 'Marylebone', center: [-0.1548, 51.5175], zoom: 15,
+                children: {
+                  'Baker Street Area': {
+                    name: 'Baker Street Area', center: [-0.1585, 51.5237], zoom: 16,
+                    children: {
+                      'Baker St': {
+                        name: 'Baker St', center: [-0.1585, 51.5237], zoom: 17,
+                        children: {
+                          '221B': {
+                            name: '221B', center: [-0.1585, 51.5237], zoom: 18,
+                            children: { 'NW1 6XE': { name: 'NW1 6XE', center: [-0.1585, 51.5237], zoom: 19 } }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  'France': {
+    name: 'France', center: [2.2137, 46.2276], zoom: 6,
+    children: {
+      'Île-de-France': {
+        name: 'Île-de-France', center: [2.3522, 48.8566], zoom: 10,
+        children: {
+          'Paris': {
+            name: 'Paris', center: [2.3522, 48.8566], zoom: 12,
+            children: {
+              '8th Arrondissement': {
+                name: '8th Arrondissement', center: [2.3126, 48.8775], zoom: 14,
+                children: {
+                  'Champs-Élysées': {
+                    name: 'Champs-Élysées', center: [2.3017, 48.8719], zoom: 16,
+                    children: {
+                      'Avenue des Champs-Élysées': {
+                        name: 'Avenue des Champs-Élysées', center: [2.3017, 48.8719], zoom: 17,
+                        children: {
+                          '101': {
+                            name: '101', center: [2.3017, 48.8719], zoom: 18.5,
+                            children: { '75008': { name: '75008', center: [2.3017, 48.8719], zoom: 19 } }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
   },
   'Netherlands': {
-    center: [5.2913, 52.1326], zoom: 7,
-    regions: {
+    name: 'Netherlands', center: [5.2913, 52.1326], zoom: 7.5,
+    children: {
       'North Holland': {
-        center: [4.9041, 52.3676], zoom: 9,
-        cities: {
-          'Amsterdam': { center: [4.9041, 52.3676], zoom: 12, districts: {} },
+        name: 'North Holland', center: [4.9041, 52.3676], zoom: 10,
+        children: {
+          'Amsterdam': {
+            name: 'Amsterdam', center: [4.9041, 52.3676], zoom: 12,
+            children: {
+              'Centrum': {
+                name: 'Centrum', center: [4.8970, 52.3740], zoom: 14,
+                children: {
+                  'Grachtengordel': {
+                    name: 'Grachtengordel', center: [4.8844, 52.3700], zoom: 16,
+                    children: {
+                      'Prinsengracht': {
+                        name: 'Prinsengracht', center: [4.8844, 52.3700], zoom: 17,
+                        children: {
+                          '263': {
+                            name: '263', center: [4.8844, 52.3700], zoom: 18,
+                            children: { '1016 GV': { name: '1016 GV', center: [4.8844, 52.3700], zoom: 18.5 } }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
   },
   'Spain': {
-    center: [-3.7492, 40.4637], zoom: 5,
-    regions: {
-      'Community of Madrid': {
-        center: [-3.7038, 40.4168], zoom: 9,
-        cities: {
-          'Madrid': { center: [-3.7038, 40.4168], zoom: 12, districts: {} },
+    name: 'Spain', center: [-3.7038, 40.4168], zoom: 6,
+    children: {
+      'Madrid Community': {
+        name: 'Madrid Community', center: [-3.7038, 40.4168], zoom: 10,
+        children: {
+          'Madrid': {
+            name: 'Madrid', center: [-3.7038, 40.4168], zoom: 12,
+            children: {
+              'Centro': {
+                name: 'Centro', center: [-3.7038, 40.4168], zoom: 14,
+                children: {
+                  'Sol': {
+                    name: 'Sol', center: [-3.7035, 40.4167], zoom: 16,
+                    children: {
+                      'Calle de Alcalá': {
+                        name: 'Calle de Alcalá', center: [-3.7000, 40.4170], zoom: 17,
+                        children: {
+                          '1': {
+                            name: '1', center: [-3.7000, 40.4170], zoom: 18,
+                            children: { '28014': { name: '28014', center: [-3.7000, 40.4170], zoom: 18.5 } }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
   },
   'Italy': {
-    center: [12.5674, 41.8719], zoom: 5,
-    regions: {
-      'Lombardy': {
-        center: [9.1900, 45.4642], zoom: 8,
-        cities: {
-          'Milan': { center: [9.1900, 45.4642], zoom: 12, districts: {} },
+    name: 'Italy', center: [12.5674, 41.8719], zoom: 6,
+    children: {
+      'Lazio': {
+        name: 'Lazio', center: [12.4964, 41.9028], zoom: 9,
+        children: {
+          'Rome': {
+            name: 'Rome', center: [12.4964, 41.9028], zoom: 12,
+            children: {
+              'Municipio I': {
+                name: 'Municipio I', center: [12.4800, 41.8900], zoom: 14,
+                children: {
+                  'Historic Centre': {
+                    name: 'Historic Centre', center: [12.4830, 41.8930], zoom: 15.5,
+                    children: {
+                      'Via del Corso': {
+                        name: 'Via del Corso', center: [12.4800, 41.9000], zoom: 17,
+                        children: {
+                          '1': {
+                            name: '1', center: [12.4800, 41.9000], zoom: 18,
+                            children: { '00186': { name: '00186', center: [12.4800, 41.9000], zoom: 18.5 } }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
   },
   'Sweden': {
-    center: [18.0686, 59.3293], zoom: 5,
-    regions: {
+    name: 'Sweden', center: [18.6435, 60.1282], zoom: 5,
+    children: {
       'Stockholm County': {
-        center: [18.0686, 59.3293], zoom: 9,
-        cities: {
-          'Stockholm': { center: [18.0686, 59.3293], zoom: 12, districts: {} },
+        name: 'Stockholm County', center: [18.0686, 59.3293], zoom: 10,
+        children: {
+          'Stockholm': {
+            name: 'Stockholm', center: [18.0686, 59.3293], zoom: 12,
+            children: {
+              'Norrmalm': {
+                name: 'Norrmalm', center: [18.0650, 59.3330], zoom: 14.5,
+                children: {
+                  'City': {
+                    name: 'City', center: [18.0650, 59.3330], zoom: 16,
+                    children: {
+                      'Drottninggatan': {
+                        name: 'Drottninggatan', center: [18.0640, 59.3340], zoom: 17,
+                        children: {
+                          '1': {
+                            name: '1', center: [18.0641, 59.3341], zoom: 18.5,
+                            children: { '111 51': { name: '111 51', center: [18.0641, 59.3341], zoom: 19 } }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  'Poland': {
+    name: 'Poland', center: [19.1451, 51.9194], zoom: 6,
+    children: {
+      'Masovian Voivodeship': {
+        name: 'Masovian Voivodeship', center: [21.0122, 52.2297], zoom: 9,
+        children: {
+          'Warsaw': {
+            name: 'Warsaw', center: [21.0122, 52.2297], zoom: 12,
+            children: {
+              'Śródmieście': {
+                name: 'Śródmieście', center: [21.0122, 52.2297], zoom: 14,
+                children: {
+                  'City Center': {
+                    name: 'City Center', center: [21.0122, 52.2297], zoom: 15.5,
+                    children: {
+                      'Nowy Świat': {
+                        name: 'Nowy Świat', center: [21.0375, 52.2331], zoom: 17,
+                        children: {
+                          '1': {
+                            name: '1', center: [21.0375, 52.2331], zoom: 18,
+                            children: { '00-001': { name: '00-001', center: [21.0375, 52.2331], zoom: 18.5 } }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
   },
   'Portugal': {
-    center: [-9.1393, 38.7223], zoom: 6,
-    regions: {
+    name: 'Portugal', center: [-8.2245, 39.3999], zoom: 7,
+    children: {
       'Lisbon District': {
-        center: [-9.1393, 38.7223], zoom: 9,
-        cities: {
-          'Lisbon': { center: [-9.1393, 38.7223], zoom: 12, districts: {} },
+        name: 'Lisbon District', center: [-9.1393, 38.7223], zoom: 10,
+        children: {
+          'Lisbon': {
+            name: 'Lisbon', center: [-9.1393, 38.7223], zoom: 12,
+            children: {
+              'Santa Maria Maior': {
+                name: 'Santa Maria Maior', center: [-9.1333, 38.7100], zoom: 15,
+                children: {
+                  'Baixa': {
+                    name: 'Baixa', center: [-9.1375, 38.7115], zoom: 16.5,
+                    children: {
+                      'Rua Augusta': {
+                        name: 'Rua Augusta', center: [-9.1375, 38.7115], zoom: 17.5,
+                        children: {
+                          '1': {
+                            name: '1', center: [-9.1375, 38.7115], zoom: 18.5,
+                            children: { '1100-053': { name: '1100-053', center: [-9.1375, 38.7115], zoom: 19 } }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
   },
   'Austria': {
-    center: [16.3738, 48.2082], zoom: 6,
-    regions: {
-      'Vienna': {
-        center: [16.3738, 48.2082], zoom: 10,
-        cities: {
-          'Vienna': { center: [16.3738, 48.2082], zoom: 12, districts: {} },
+    name: 'Austria', center: [14.5501, 47.5162], zoom: 7.5,
+    children: {
+      'Vienna State': {
+        name: 'Vienna State', center: [16.3738, 48.2082], zoom: 11,
+        children: {
+          'Vienna': {
+            name: 'Vienna', center: [16.3738, 48.2082], zoom: 12.5,
+            children: {
+              'Innere Stadt': {
+                name: 'Innere Stadt', center: [16.3700, 48.2100], zoom: 15,
+                children: {
+                  'City center': {
+                    name: 'City center', center: [16.3700, 48.2100], zoom: 16,
+                    children: {
+                      'Graben': {
+                        name: 'Graben', center: [16.3680, 48.2090], zoom: 17.5,
+                        children: {
+                          '21': {
+                            name: '21', center: [16.3681, 48.2091], zoom: 18.5,
+                            children: { '1010': { name: '1010', center: [16.3681, 48.2091], zoom: 19 } }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
-  },
+  }
 };
 
 export const DATA_VERSION = 'v2.4';

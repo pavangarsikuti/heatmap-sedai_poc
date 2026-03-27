@@ -5,42 +5,30 @@ import { GEO_LEVEL_LABELS } from '../data/analysisData';
 
 const COUNTRIES = ['All', ...Object.keys(REGIONAL_DATA)];
 
-// Helper: get options at a given depth using the geoPath
-const getGeoOptions = (geoPath) => {
-  // geoPath = ['Europe', 'Germany', 'Bavaria', 'Munich', ...]
-  // idx 0 = Europe, idx 1 = country, idx 2 = region, idx 3 = city, idx 4 = district, idx 5 = locality
-  const [, country, region, city, district, locality] = geoPath;
+// Helper: get options at each depth using the recursive REGIONAL_DATA
+const getCascadingOptions = (geoPath) => {
+  // geoPath[0] is 'Europe'
+  const optionsList = [Object.keys(REGIONAL_DATA)]; // L1 options
+  let currentChildren = REGIONAL_DATA;
 
-  const countryData = country && REGIONAL_DATA[country];
-  const regionData  = countryData && region  && countryData.regions?.[region];
-  const cityData    = regionData  && city    && regionData.cities?.[city];
-  const distData    = cityData    && district && cityData.districts?.[district];
-  const localData   = distData    && locality && distData.localities?.[locality];
-
-  return {
-    regions:     countryData ? Object.keys(countryData.regions || {}) : [],
-    cities:      regionData  ? Object.keys(regionData.cities   || {}) : [],
-    districts:   cityData    ? Object.keys(cityData.districts  || {}) : [],
-    localities:  distData    ? Object.keys(distData.localities || {}) : [],
-    microMarkets: localData  ? Object.keys(localData.microMarkets || {}) : [],
-  };
+  for (let i = 1; i < geoPath.length; i++) {
+    const selected = geoPath[i];
+    if (currentChildren[selected] && currentChildren[selected].children) {
+      currentChildren = currentChildren[selected].children;
+      optionsList.push(Object.keys(currentChildren));
+    } else {
+      break;
+    }
+  }
+  return optionsList;
 };
 
-// Current geographic level depth (0=Europe, 1=country, …, 6=microMarket)
+// Current geographic level depth (0=Europe, 1=country, …, 10=postalCode)
 export const getGeoDepth = (geoPath) => Math.max(0, geoPath.length - 1);
 
 const ControlBar = ({ filters, onFilterChange, geoPath, onGeoSelect, onAnalyze }) => {
-  const geoOptions = useMemo(() => getGeoOptions(geoPath), [geoPath]);
+  const cascadingOptions = useMemo(() => getCascadingOptions(geoPath), [geoPath]);
   const depth = getGeoDepth(geoPath);
-
-  const [, country, region, city, district, locality] = geoPath;
-
-  // Which cascading geo filters to show
-  const showRegion     = !!country;
-  const showCity       = !!region    && geoOptions.cities.length > 0;
-  const showDistrict   = !!city      && geoOptions.districts.length > 0;
-  const showLocality   = !!district  && geoOptions.localities.length > 0;
-  const showMicroMkt   = !!locality  && geoOptions.microMarkets.length > 0;
 
   const levelInfo = GEO_LEVEL_LABELS[depth] || GEO_LEVEL_LABELS[1];
 
@@ -130,79 +118,9 @@ const ControlBar = ({ filters, onFilterChange, geoPath, onGeoSelect, onAnalyze }
 
         <div style={{ height: 16, width: 1, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
 
-        {/* ── Cascading Geographic Filters ── */}
-        {/* L1: Country */}
-        <GeoDropdown
-          label="Country"
-          levelTag="L1"
-          value={country || 'All'}
-          options={COUNTRIES}
-          onChange={v => onGeoSelect('country', v === 'All' ? null : v)}
-          active={!!country}
-        />
-
-        {/* L2: Region */}
-        {showRegion && (
-          <GeoDropdown
-            label="Region"
-            levelTag="L2"
-            value={region || 'All'}
-            options={['All', ...geoOptions.regions]}
-            onChange={v => onGeoSelect('region', v === 'All' ? null : v)}
-            active={!!region}
-          />
-        )}
-
-        {/* L3: City */}
-        {showCity && (
-          <GeoDropdown
-            label="City"
-            levelTag="L3"
-            value={city || 'All'}
-            options={['All', ...geoOptions.cities]}
-            onChange={v => onGeoSelect('city', v === 'All' ? null : v)}
-            active={!!city}
-          />
-        )}
-
-        {/* L4: District */}
-        {showDistrict && (
-          <GeoDropdown
-            label="District"
-            levelTag="L4"
-            value={district || 'All'}
-            options={['All', ...geoOptions.districts]}
-            onChange={v => onGeoSelect('district', v === 'All' ? null : v)}
-            active={!!district}
-          />
-        )}
-
-        {/* L5: Locality */}
-        {showLocality && (
-          <GeoDropdown
-            label="Locality"
-            levelTag="L5"
-            value={locality || 'All'}
-            options={['All', ...geoOptions.localities]}
-            onChange={v => onGeoSelect('locality', v === 'All' ? null : v)}
-            active={!!locality}
-          />
-        )}
-
-        {/* L6: Micro Market */}
-        {showMicroMkt && (
-          <GeoDropdown
-            label="Micro Market"
-            levelTag="L6"
-            value={geoPath[6] || 'All'}
-            options={['All', ...geoOptions.microMarkets]}
-            onChange={v => onGeoSelect('microMarket', v === 'All' ? null : v)}
-            active={!!geoPath[6]}
-          />
-        )}
-
         {/* Spacer */}
         <div style={{ flex: 1 }} />
+
 
         {/* Analyse Button */}
         {depth >= 1 && (

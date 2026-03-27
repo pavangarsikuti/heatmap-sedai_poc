@@ -8,7 +8,8 @@ import RightSidebar from './components/RightSidebar';
 import ChangelogModal from './components/ChangelogModal';
 import AnalysisRadarScanner from './components/AnalysisRadarScanner';
 import AnalysisDetailView from './components/AnalysisDetailView';
-import { ASSETS_DATA, REGIONAL_DATA, DATA_VERSION, PORTFOLIO_VERSION } from './data/assets';
+import GeoFilterCard from './components/GeoFilterCard';
+import { ASSETS_DATA, REGIONAL_DATA, DATA_VERSION, PORTFOLIO_VERSION, GEO_LEVELS } from './data/assets';
 import {
   generateAnalysisForLevel,
   generateNewsArticles,
@@ -31,23 +32,22 @@ const DEFAULT_FILTERS = {
   viewMode: 'Regions',
 };
 
-// Resolve the center/zoom for a geoPath from REGIONAL_DATA
+// Resolve the center/zoom for a geoPath using recursive traversal
 const resolveGeoTarget = (geoPath) => {
-  const [, country, region, city, district, locality, microMarket] = geoPath;
-  const cd = country && REGIONAL_DATA[country];
-  const rd = cd && region && cd.regions?.[region];
-  const cit = rd && city && rd.cities?.[city];
-  const dist = cit && district && cit.districts?.[district];
-  const loc = dist && locality && dist.localities?.[locality];
-  const mm = loc && microMarket && loc.microMarkets?.[microMarket];
+  if (geoPath.length <= 1) return null;
+  let current = REGIONAL_DATA;
+  let targetNode = null;
 
-  if (mm)   return mm;
-  if (loc)  return loc;
-  if (dist) return dist;
-  if (cit)  return cit;
-  if (rd)   return rd;
-  if (cd)   return cd;
-  return null;
+  for (let i = 1; i < geoPath.length; i++) {
+    const name = geoPath[i];
+    if (current && current[name]) {
+      targetNode = current[name];
+      current = targetNode.children;
+    } else {
+      break;
+    }
+  }
+  return targetNode;
 };
 
 // Build a storage key from geoPath
@@ -93,8 +93,9 @@ const App = () => {
   // Cascading geographic selection handler
   const handleGeoSelect = (level, value) => {
     setGeoPath(prev => {
-      const levelIndexMap = { country: 1, region: 2, city: 3, district: 4, locality: 5, microMarket: 6 };
-      const idx = levelIndexMap[level];
+      const idx = GEO_LEVELS.indexOf(level) + 1; // +1 because geoPath[0] is 'Europe'
+      if (idx < 1) return prev;
+
       if (!value) {
         // Clear this level and below
         return prev.slice(0, idx);
@@ -105,7 +106,10 @@ const App = () => {
   };
 
   const handleDrillDown = (name) => {
-    setGeoPath(prev => [...prev, name]);
+    setGeoPath(prev => {
+      if (prev.includes(name)) return prev;
+      return [...prev, name];
+    });
   };
 
   const handleStepUp = (index) => {
@@ -115,7 +119,7 @@ const App = () => {
   // Trigger analysis for current geoPath level
   const handleAnalyze = () => {
     const levelName = geoPath[geoPath.length - 1];
-    const levelDepth = Math.min(geoPath.length - 1, 6);
+    const levelDepth = geoPath.length - 1; // L10 check
     const storageKey = buildStorageKey(geoPath);
 
     // Check local storage first
@@ -251,6 +255,17 @@ const App = () => {
                   onStepUp={handleStepUp}
                   onAnalyze={handleAnalyze}
                 />
+
+                {/* ── Floating Geo Filter Card ── */}
+                {filters.viewMode === 'Regions' && geoPath.length > 0 && (
+                  <GeoFilterCard 
+                    geoPath={geoPath} 
+                    onGeoSelect={handleGeoSelect} 
+                    onAnalyze={handleAnalyze}
+                    isSidebarOpen={isSidebarOpen}
+                  />
+                )}
+
                 <RightSidebar
                   isOpen={isRightSidebarOpen}
                   onToggle={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
